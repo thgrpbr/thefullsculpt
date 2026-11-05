@@ -1,19 +1,16 @@
 import type { NextConfig } from "next";
 
-const securityHeaders = [
-  { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "X-Frame-Options", value: "DENY" },
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-  { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
-];
-
+/**
+ * Export estático: o app roda 100% no navegador (dados externos virão por API/Supabase),
+ * o que permite hospedar em PHP/HTML da Hostinger e empacotar com Capacitor (iOS/Android).
+ * Cabeçalhos de segurança ficam em public/.htaccess.
+ */
 const nextConfig: NextConfig = {
+  output: "export",
+  trailingSlash: true,
+  images: { unoptimized: true },
   poweredByHeader: false,
   reactStrictMode: true,
-  async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
-  },
   turbopack: {
     rules: {
       "*.css": {

@@ -47,5 +47,10 @@ O botão "Explorar com dados de teste" carrega a persona demo (Fase 4, 14 aulas 
 5. Capacitor (iOS/Android) — acesso ao app só para assinantes (assinatura feita pela web).
 6. Páginas de privacidade/termos, RIPD, DPO, pentest antes do lançamento.
 
-> Nota de hospedagem: o projeto usa `proxy.ts` (redirecionamento de idioma), então precisa de Node.js no servidor
-> (Hostinger Node.js Web App), não apenas hospedagem estática.
+## Deploy (Hostinger)
+
+Export estático (`output: "export"`): o app roda no navegador e é compatível com hospedagem PHP/HTML e com Capacitor.
+
+- Push na `main` → GitHub Actions (`.github/workflows/deploy.yml`) faz lint + build e publica `out/` na branch **`deploy`**.
+- A Hostinger (Git → `public_html`) lê a branch `deploy`.
+- Cabeçalhos de segurança, HTTPS/www e cache: `public/.htaccess`. Redirecionamento de idioma da raiz: `public/index.html`.

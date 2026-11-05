@@ -1,0 +1,46 @@
+# THE FULL SCULPT — Apache/LiteSpeed (Hostinger)
+Options -Indexes
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# Força HTTPS e domínio com www
+RewriteCond %{HTTPS} off [OR]
+RewriteCond %{HTTP_HOST} !^www\. [NC]
+RewriteCond %{HTTP_HOST} ^(?:www\.)?(thefullsculpt\.com\.br)$ [NC]
+RewriteRule ^ https://www.%1%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# Bloqueia arquivos sensíveis
+<FilesMatch "^\.(?!well-known)|\.(env|md|map|log|ya?ml)$">
+  Require all denied
+</FilesMatch>
+<FilesMatch "^(manifest|package|package-lock)\.json$">
+  Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+Header always set X-Content-Type-Options "nosniff"
+Header always set X-Frame-Options "DENY"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains"
+Header always set Cross-Origin-Opener-Policy "same-origin"
+</IfModule>
+
+# Cache: assets com hash são imutáveis; HTML sempre revalida
+<IfModule mod_expires.c>
+ExpiresActive On
+ExpiresByType text/html "access plus 0 seconds"
+ExpiresByType text/css "access plus 1 year"
+ExpiresByType application/javascript "access plus 1 year"
+ExpiresByType font/woff2 "access plus 1 year"
+ExpiresByType image/svg+xml "access plus 1 month"
+</IfModule>
+
+<IfModule mod_deflate.c>
+AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
+</IfModule>
+
+ErrorDocument 404 /404.html

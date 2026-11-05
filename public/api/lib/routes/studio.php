@@ -93,7 +93,24 @@ $cleanDef = static function (mixed $d): array {
         $checks[] = ['joint' => $c['joint'], 'enabled' => ($c['enabled'] ?? false) === true, 'tolerance' => $num($c['tolerance'] ?? null, 1, 60),
             'weight' => (int) $num($c['weight'] ?? null, 1, 5), 'cueLow' => $cue($c['cueLow'] ?? null), 'cueHigh' => $cue($c['cueHigh'] ?? null)];
     }
-    return ['v' => 1, 'lengths' => $lengths, 'keys' => $outKeys, 'limits' => $limits, 'checks' => $checks, 'repSeconds' => $num($d['repSeconds'] ?? 4, 1.5, 12)];
+    // vídeo de referência (opcional): endereço, marcas de tempo e calibração do traçado sobre o vídeo
+    $video = null;
+    if (is_array($d['video'] ?? null)) {
+        $v = $d['video'];
+        $url = trim((string) ($v['url'] ?? ''));
+        if (mb_strlen($url) > 300 || ($url !== '' && !preg_match('#^(https?://|/)#i', $url))) {
+            $bad();
+        }
+        $t0 = $num($v['t0'] ?? 0, 0, 7200);
+        $t1 = $num($v['t1'] ?? 0, 0, 7200);
+        $t2 = $num($v['t2'] ?? 0, 0, 7200);
+        if ($t1 < $t0 || $t2 < $t1) {
+            $bad('video_marks');   // início ≤ ponto máximo ≤ fim
+        }
+        $video = ['url' => $url, 't0' => $t0, 't1' => $t1, 't2' => $t2, 'flip' => ($v['flip'] ?? false) === true, 'scale' => $num($v['scale'] ?? 1, 0.2, 4),
+            'ox' => $num($v['ox'] ?? 0, -400, 400), 'oy' => $num($v['oy'] ?? 0, -400, 400), 'opacity' => $num($v['opacity'] ?? 0.6, 0, 1), 'heightM' => $num($v['heightM'] ?? 1.7, 1, 2.3)];
+    }
+    return ['v' => 1, 'video' => $video, 'lengths' => $lengths, 'keys' => $outKeys, 'limits' => $limits, 'checks' => $checks, 'repSeconds' => $num($d['repSeconds'] ?? 4, 1.5, 12)];
 };
 
 if ($route === 'GET /admin/studio') {
@@ -110,7 +127,7 @@ if ($route === 'GET /admin/studio') {
 
 if (preg_match('#^/admin/studio/([A-Za-z0-9_-]{2,40})(?:/(restore))?$#', $path, $m)) {
     $slug = $m[1];
-    $ex = DB::one($pdo, 'SELECT slug, motion, depth, i18n FROM exercises WHERE slug = ?', [$slug]);
+    $ex = DB::one($pdo, 'SELECT slug, motion, depth, i18n, video_url FROM exercises WHERE slug = ?', [$slug]);
     if (!$ex) {
         Http::fail(404, 'not_found');
     }
@@ -118,7 +135,7 @@ if (preg_match('#^/admin/studio/([A-Za-z0-9_-]{2,40})(?:/(restore))?$#', $path, 
         $cur = DB::one($pdo, 'SELECT id, version, def, note, created_at FROM exercise_rigs WHERE slug = ? AND is_current = 1', [$slug]);
         $hist = DB::all($pdo, 'SELECT r.id, r.version, r.note, r.created_at, r.is_current, u.name AS author FROM exercise_rigs r LEFT JOIN users u ON u.id = r.author_id WHERE r.slug = ? ORDER BY r.version DESC LIMIT 50', [$slug]);
         $i = json_decode((string) $ex['i18n'], true);
-        Http::json(['slug' => $slug, 'name' => $i['pt']['name'] ?? $slug, 'motion' => $ex['motion'], 'depth' => (float) $ex['depth'],
+        Http::json(['slug' => $slug, 'name' => $i['pt']['name'] ?? $slug, 'motion' => $ex['motion'], 'depth' => (float) $ex['depth'], 'video_url' => $ex['video_url'],
             'def' => $cur ? json_decode((string) $cur['def'], true) : null, 'version' => $cur ? (int) $cur['version'] : null, 'history' => $hist]);
     }
     if ($method === 'PUT') {

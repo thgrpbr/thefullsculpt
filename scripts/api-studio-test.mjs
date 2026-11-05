@@ -78,6 +78,19 @@ ok("restaura a v1 como nova versão (v3)", (await admin.call("POST", `/admin/stu
 ok("restaurar versão inexistente => 404", (await admin.call("POST", `/admin/studio/${slug}/restore`, { version: 99 })).status === 404);
 ok("voltar ao padrão remove o rig do app mas preserva o histórico", (await admin.call("DELETE", `/admin/studio/${slug}`)).status === 200 && !(slug in (await anon.call("GET", "/motions")).json.rigs) && (await admin.call("GET", `/admin/studio/${slug}`)).json.history.length === 3);
 
+console.log("Vídeo de referência");
+const vid = (over = {}) => ({ url: "/videos/agachamento.mp4", t0: 1.2, t1: 3.4, t2: 5.6, flip: false, scale: 1.1, ox: 10, oy: -5, opacity: 0.5, heightM: 1.68, ...over });
+ok("marcas fora de ordem => 422", (await admin.call("PUT", `/admin/studio/${slug}`, { def: def({ video: vid({ t1: 0.5 }) }) })).json?.error === "video_marks");
+ok("endereço de vídeo inválido (javascript:) => 422", (await admin.call("PUT", `/admin/studio/${slug}`, { def: def({ video: vid({ url: "javascript:alert(1)" }) }) })).status === 422);
+ok("altura da instrutora fora da faixa => 422", (await admin.call("PUT", `/admin/studio/${slug}`, { def: def({ video: vid({ heightM: 3.5 }) }) })).status === 422);
+const sv = await admin.call("PUT", `/admin/studio/${slug}`, { def: def({ video: vid() }), note: "com vídeo" });
+const gv = await admin.call("GET", `/admin/studio/${slug}`);
+ok("salva vídeo, marcas e calibração junto do rig", sv.status === 200 && gv.json.def.video.t1 === 3.4 && gv.json.def.video.url === "/videos/agachamento.mp4" && gv.json.def.video.flip === false && gv.json.def.video.heightM === 1.68, JSON.stringify(gv.json.def?.video));
+ok("o app recebe as marcas junto do movimento", (await anon.call("GET", "/motions")).json.rigs[slug].video.t2 === 5.6);
+ok("rig sem vídeo continua válido", (await admin.call("PUT", `/admin/studio/${slug}`, { def: def({ video: null }) })).status === 200 && (await admin.call("GET", `/admin/studio/${slug}`)).json.def.video === null);
+ok("detalhe traz o vídeo cadastrado no exercício (ou nulo)", "video_url" in gv.json);
+await admin.call("DELETE", `/admin/studio/${slug}`);
+
 console.log("Permissões");
 const aluno = new Client();
 await aluno.login("teste@thefullsculpt.com.br");

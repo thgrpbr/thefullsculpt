@@ -26,8 +26,24 @@ export interface Check {
   cueLow: Record<"pt" | "en" | "es", string>; // medido ABAIXO da referência
   cueHigh: Record<"pt" | "en" | "es", string>; // medido ACIMA da referência
 }
+/** Vídeo da instrutora usado como referência: marcas de tempo da repetição e calibração do traçado. */
+export interface VideoRef {
+  url: string;
+  t0: number; // início da repetição (s)
+  t1: number; // ponto máximo (s)
+  t2: number; // fim da repetição (s)
+  flip: boolean; // vídeo voltado para a esquerda
+  scale: number;
+  ox: number;
+  oy: number;
+  opacity: number;
+  heightM: number; // altura da instrutora (m), para calibrar a escala
+}
+export const defaultVideo = (url = ""): VideoRef => ({ url, t0: 0, t1: 2, t2: 4, flip: false, scale: 1, ox: 0, oy: 0, opacity: 0.6, heightM: 1.7 });
+
 export interface MotionDef {
   v: 1;
+  video?: VideoRef | null;
   lengths: Lengths;
   keys: Key[];
   limits: Record<JointAngle, [number, number]>;
@@ -151,6 +167,7 @@ export function exportReference(slug: string, def: MotionDef) {
     format: "tfs-motion-reference/1",
     exercise: slug,
     repSeconds: def.repSeconds,
+    video: def.video ? { url: def.video.url, t0: def.video.t0, t1: def.video.t1, t2: def.video.t2 } : null,
     note: "p vai de 0 (início) ao ponto máximo (1) e volta; compare o ângulo medido pelo MediaPipe com angles[joint] na fase da repetição.",
     mediapipe: { model: "pose_landmarker", landmarks: MEDIAPIPE_MAP },
     curves,

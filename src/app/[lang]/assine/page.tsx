@@ -17,13 +17,19 @@ export default function Subscribe() {
   const sub = useStore((s) => s.sub);
   const [busy, setBusy] = useState(false);
 
-  function pay() {
+  const [error, setError] = useState("");
+
+  async function pay() {
     setBusy(true);
-    // Placeholder: aqui entra o Stripe Checkout (sessão criada no servidor).
-    setTimeout(() => {
-      subscribe();
+    setError("");
+    try {
+      // Placeholder: aqui entra o Stripe Checkout (sessão criada no servidor).
+      await subscribe();
       router.push(href("/app"));
-    }, 900);
+    } catch {
+      setError(t("paywall.error"));
+      setBusy(false);
+    }
   }
 
   if (!hydrated) return <div className="theme-light min-h-dvh" />;
@@ -53,6 +59,7 @@ export default function Subscribe() {
             <Lock size={15} aria-hidden="true" />
             {sub === "active" ? t("paywall.already") : busy ? t("common.loading") : t("paywall.cta")}
           </button>
+          {error && <p role="alert" className="mt-3 text-center text-[13px] text-ember">{error}</p>}
           <p className="mt-4 text-center text-[12px] text-muted">{t("paywall.secure")}</p>
         </div>
 

@@ -8,6 +8,7 @@ import { LangSwitch, Wordmark } from "@/components/ui";
 import { useI18n } from "@/i18n/provider";
 import { DAYS, EQUIPMENT, EXPERIENCE, GOALS, INJURIES, PARQ, type Assignment } from "@/lib/anamnese";
 import { INTENSITIES, LEVELS, lessonId } from "@/lib/phases";
+import { api, ApiError, type ServerState } from "@/lib/api";
 import { useHydrated, useStore } from "@/lib/store";
 
 const STEPS = ["welcome", "consent", "goal", "experience", "days", "body", "injuries", "parq", "equipment", "coaching", "analyzing", "result"] as const;
@@ -36,14 +37,24 @@ function Options({ values, current, onPick, prefix }: { values: readonly (string
 }
 
 export default function Onboarding() {
-  const { t, href } = useI18n();
   const hydrated = useHydrated();
-  const { answers, setAnswers, setParq, setProfile, finishAnamnese } = useStore();
-  const [i, setI] = useState(0);
+  const isUser = useStore((s) => s.mode === "user");
+  if (!hydrated) return <div className="theme-light min-h-dvh" />;
+  // quem já tem conta (cadastro feito, anamnese pendente) pula direto para as perguntas
+  return <Flow startAt={isUser ? 2 : 0} />;
+}
+
+function Flow({ startAt }: { startAt: number }) {
+  const { t, href, lang } = useI18n();
+  const { answers, setAnswers, setParq, setProfile, finishAnamnese, applyServer } = useStore();
+  const [i, setI] = useState(startAt);
   const step: Step = STEPS[i];
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
   const [terms, setTerms] = useState(false);
   const [health, setHealth] = useState(false);
   const [marketing, setMarketing] = useState(false);
@@ -53,8 +64,8 @@ export default function Onboarding() {
   const eraseAll = useStore((s) => s.eraseAll);
   useEffect(() => {
     // Quem vem do modo demonstração começa uma anamnese limpa (sem herdar plano nem progresso do demo).
-    if (hydrated && isDemo) eraseAll();
-  }, [hydrated, isDemo, eraseAll]);
+    if (isDemo) eraseAll();
+  }, [isDemo, eraseAll]);
 
   useEffect(() => {
     if (step !== "analyzing") return;
@@ -69,7 +80,7 @@ export default function Onboarding() {
   const parqDone = PARQ.every((q) => answers.parq[q] !== undefined);
 
   const canNext: Record<Step, boolean> = {
-    welcome: name.trim().length > 1 && emailOk,
+    welcome: name.trim().length > 1 && emailOk && password.length >= 10,
     consent: terms && health,
     goal: !!answers.goal,
     experience: !!answers.experience,
@@ -83,8 +94,33 @@ export default function Onboarding() {
     result: true,
   };
 
-  function next() {
-    if (step === "consent") setProfile({ name: name.trim(), email: email.trim() }, { health, terms, marketing, at: new Date().toISOString() });
+  async function next() {
+    if (step === "consent") {
+      setBusy(true);
+      setError("");
+      try {
+        applyServer(
+          await api<ServerState>("POST", "/auth/register", {
+            name: name.trim(),
+            email: email.trim(),
+            password,
+            locale: lang,
+            consents: { terms, health, marketing },
+          }),
+        );
+      } catch (e) {
+        const code = e instanceof ApiError ? e.code : "generic";
+        if (code === "not_installed") {
+          // API ainda não instalada neste ambiente: segue só neste navegador
+          setProfile({ name: name.trim(), email: email.trim() }, { health, terms, marketing, at: new Date().toISOString() });
+        } else {
+          setError(t(`onb.errors.${["email_taken", "weak_password", "rate_limited", "network", "invalid_email"].includes(code) ? code : "generic"}`));
+          setBusy(false);
+          return;
+        }
+      }
+      setBusy(false);
+    }
     setI((n) => Math.min(STEPS.length - 1, n + 1));
   }
 
@@ -93,8 +129,6 @@ export default function Onboarding() {
     const has = answers.injuries.includes(k);
     setAnswers({ injuries: has ? answers.injuries.filter((x) => x !== k) : [...answers.injuries, k] });
   };
-
-  if (!hydrated) return <div className="theme-light min-h-dvh" />;
 
   const progress = Math.min(1, i / (STEPS.length - 2));
 
@@ -122,6 +156,8 @@ export default function Onboarding() {
                 <div className="mt-8 flex flex-col gap-3">
                   <input type="text" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("onb.name")} aria-label={t("onb.name")} />
                   <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("onb.email")} aria-label={t("onb.email")} />
+                  <input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t("onb.password")} aria-label={t("onb.password")} />
+                  <p className="text-[12px] text-muted">{t("onb.passwordHint")}</p>
                 </div>
               </>
             )}
@@ -265,9 +301,17 @@ export default function Onboarding() {
             {step === "result" && result ? (
               <Link href={href(`/app/aula/${lessonId(result.phase, 1)}`)} className="btn btn-ember w-full">{t("onb.startFree")}</Link>
             ) : (
-              <button type="button" className="btn btn-primary w-full disabled:opacity-35" disabled={!canNext[step]} onClick={next}>
-                {step === "coaching" ? t("onb.finish") : t("common.continue")}
-              </button>
+              <>
+                {error && (
+                  <p role="alert" className="mb-3 text-[14px] text-ember">
+                    {error}{" "}
+                    {error === t("onb.errors.email_taken") && <Link href={href("/entrar")} className="underline underline-offset-4">{t("auth.submit")}</Link>}
+                  </p>
+                )}
+                <button type="button" className="btn btn-primary w-full disabled:opacity-35" disabled={!canNext[step] || busy} onClick={next}>
+                  {busy ? t("common.loading") : step === "coaching" ? t("onb.finish") : t("common.continue")}
+                </button>
+              </>
             )}
           </div>
         )}

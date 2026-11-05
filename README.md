@@ -47,6 +47,17 @@ O botão "Explorar com dados de teste" carrega a persona demo (Fase 4, 14 aulas 
 5. Capacitor (iOS/Android) — acesso ao app só para assinantes (assinatura feita pela web).
 6. Páginas de privacidade/termos, RIPD, DPO, pentest antes do lançamento.
 
+## Backend (PHP + MySQL da Hostinger)
+
+API em `public/api/` (vai para `/api` no site). Dados no MySQL da hospedagem; segredos **fora** do `public_html` (`tfs-config.php`).
+
+- Senhas: Argon2id. Sessão: cookie HttpOnly + SameSite=Lax (token só como hash no banco). CSRF: cabeçalho `X-Requested-With` + checagem de Origin.
+- Dados de saúde (anamnese): criptografados com libsodium (secretbox). IPs guardados só como HMAC.
+- Limite de tentativas (cadastro/login/exclusão), trilha de auditoria, consentimentos versionados.
+- LGPD: `GET /api/privacy/export` e `DELETE /api/privacy/account`. Paywall e regras de fase/streak aplicados no servidor.
+- Instalação única: abra `/api/install.php` (pede o token de instalação e os dados do MySQL; grava o config fora do site e se desativa).
+- Testes: `php scripts/dev-api.php init <config> <db>` + `php -S 127.0.0.1:8081 scripts/dev-api.php` + `node scripts/api-test.mjs`.
+
 ## Deploy (Hostinger)
 
 Export estático (`output: "export"`): o app roda no navegador e é compatível com hospedagem PHP/HTML e com Capacitor.

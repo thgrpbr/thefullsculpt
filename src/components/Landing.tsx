@@ -31,7 +31,7 @@ export default function Landing() {
           <Wordmark size="sm" />
           <div className="flex items-center gap-3 md:gap-5">
             <LangSwitch />
-            <Link href={href("/app")} className="hidden text-[13px] text-muted hover:text-fg md:block">{t("landing.login")}</Link>
+            <Link href={href("/entrar")} className="hidden text-[13px] text-muted hover:text-fg md:block">{t("landing.login")}</Link>
             <Link href={href("/onboarding")} className="btn btn-primary !h-10 !px-5 text-[13px]">{t("landing.ctaShort")}</Link>
           </div>
         </div>

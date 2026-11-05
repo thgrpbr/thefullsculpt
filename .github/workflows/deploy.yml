@@ -39,3 +39,25 @@ jobs:
           git add -A
           git commit -q -m "deploy: ${GITHUB_SHA::7}"
           git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" deploy
+
+  api-tests:
+    # Não bloqueia o deploy; sinaliza regressões na API PHP.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: sodium, pdo_sqlite, mbstring
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Lint PHP
+        run: for f in public/api/index.php public/api/install.php public/api/lib/core.php scripts/dev-api.php; do php -l "$f"; done
+      - name: Testes de integração
+        run: |
+          export TFS_CONFIG="$RUNNER_TEMP/tfs-config.php"
+          php scripts/dev-api.php init "$TFS_CONFIG" "$RUNNER_TEMP/test.sqlite"
+          php -S 127.0.0.1:8081 scripts/dev-api.php > "$RUNNER_TEMP/php.log" 2>&1 &
+          sleep 2
+          BASE=http://127.0.0.1:8081 DB="$RUNNER_TEMP/test.sqlite" node scripts/api-test.mjs

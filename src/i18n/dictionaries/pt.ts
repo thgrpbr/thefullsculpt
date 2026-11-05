@@ -9,9 +9,19 @@ const pt = {
   intensity: { light: "Leves", moderate: "Moderados", intense: "Intensos" },
   phase: { label: "Fase {n}", state: { done: "Concluída", current: "Atual", next: "Próxima", locked: "Bloqueada" } },
   gate: {
+    login: "Já tenho conta",
     title: "Vamos começar pela sua anamnese",
     text: "Ela define sua fase inicial e adapta o treino à sua condição. Ou explore o app com dados de teste.",
     start: "Fazer anamnese", demo: "Explorar com dados de teste",
+  },
+  auth: {
+    title: "Entrar", text: "Acesse sua conta para continuar de onde parou.", password: "Senha", submit: "Entrar",
+    noAccount: "Ainda não tem conta?", create: "Criar conta",
+    errors: {
+      invalid_credentials: "E-mail ou senha incorretos.", rate_limited: "Muitas tentativas. Aguarde alguns minutos.",
+      network: "Sem conexão com o servidor. Tente novamente.", not_installed: "O servidor ainda não foi configurado.",
+      generic: "Não foi possível entrar agora. Tente novamente.",
+    },
   },
   anatomy: {
     title: "Anatomia 3D", layers: "Camadas", skin: "Corpo", muscle: "Músculos", skeleton: "Esqueleto", views: "Vistas",
@@ -97,16 +107,24 @@ const pt = {
     c: "bateu a meta da semana antes do prazo.",
   },
   profile: {
+    logout: "Sair",
     eyebrow: "Perfil", plan: "Plano", planActive: "Plano mensal ativo", planFree: "Aula grátis", subscribe: "Assinar",
     coach: "Consulta online com professor", coachText: "Você pediu para parametrizar seu treino com um professor. O agendamento chega em breve.",
     language: "Idioma", reloadDemo: "Recarregar dados de demonstração",
   },
   privacy: {
+    error: "Não foi possível concluir. Tente novamente.", wrongPassword: "Senha incorreta.",
     title: "Privacidade e dados", text: "Seus dados de saúde são sensíveis. Você controla o que fica guardado.",
     health: "Dados de saúde", terms: "Termos e privacidade", marketing: "Novidades por e-mail", export: "Exportar meus dados",
     erase: "Excluir minha conta", confirm: "Isso apaga tudo, sem volta.", eraseNow: "Excluir agora",
   },
   onb: {
+    password: "Crie uma senha", passwordHint: "Mínimo de 10 caracteres.",
+    errors: {
+      email_taken: "Esse e-mail já tem conta.", weak_password: "Use uma senha com pelo menos 10 caracteres.", invalid_email: "E-mail inválido.",
+      rate_limited: "Muitas tentativas. Aguarde alguns minutos.", network: "Sem conexão com o servidor. Tente novamente.",
+      generic: "Não foi possível criar a conta agora. Tente novamente.",
+    },
     freeLesson: "Sua primeira aula é grátis", welcomeTitle: "Vamos conhecer você.",
     welcomeText: "Em poucos passos montamos o ponto de partida ideal para o seu corpo.", name: "Seu nome", email: "Seu e-mail",
     consentTitle: "Antes de começar", consentText: "Precisamos do seu consentimento para tratar seus dados.",
@@ -144,6 +162,7 @@ const pt = {
     restrictions: "Movimentos adaptados para", resultText: "Sua primeira aula é grátis. Depois, é só escolher o plano mensal para seguir.", startFree: "Começar aula grátis",
   },
   paywall: {
+    error: "Não foi possível ativar a assinatura. Tente novamente.",
     eyebrow: "Aula grátis concluída", title: "Continue sua evolução.", text: "Libere as 9 fases, o 3D completo e o acompanhamento do seu progresso.",
     cta: "Assinar plano mensal", already: "Você já é assinante", secure: "Pagamento seguro. Cancele quando quiser.",
     testNote: "Ambiente de teste: o botão simula a assinatura. O checkout real (Stripe) será conectado na próxima etapa.",

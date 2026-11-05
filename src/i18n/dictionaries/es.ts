@@ -11,9 +11,19 @@ const es: Dict = {
   intensity: { light: "Suaves", moderate: "Moderados", intense: "Intensos" },
   phase: { label: "Fase {n}", state: { done: "Completada", current: "Actual", next: "Siguiente", locked: "Bloqueada" } },
   gate: {
+    login: "Ya tengo cuenta",
     title: "Empecemos con tu anamnesis",
     text: "Define tu fase inicial y adapta el entrenamiento a tu condición. O explora la app con datos de prueba.",
     start: "Hacer la anamnesis", demo: "Explorar con datos de prueba",
+  },
+  auth: {
+    title: "Entrar", text: "Accede a tu cuenta para continuar donde lo dejaste.", password: "Contraseña", submit: "Entrar",
+    noAccount: "¿Aún no tienes cuenta?", create: "Crear cuenta",
+    errors: {
+      invalid_credentials: "Correo o contraseña incorrectos.", rate_limited: "Demasiados intentos. Espera unos minutos.",
+      network: "Sin conexión con el servidor. Inténtalo de nuevo.", not_installed: "El servidor aún no está configurado.",
+      generic: "No pudimos iniciar tu sesión ahora. Inténtalo de nuevo.",
+    },
   },
   anatomy: {
     title: "Anatomía 3D", layers: "Capas", skin: "Cuerpo", muscle: "Músculos", skeleton: "Esqueleto", views: "Vistas",
@@ -99,16 +109,24 @@ const es: Dict = {
     c: "alcanzó la meta de la semana antes de tiempo.",
   },
   profile: {
+    logout: "Cerrar sesión",
     eyebrow: "Perfil", plan: "Plan", planActive: "Plan mensual activo", planFree: "Clase gratis", subscribe: "Suscribirse",
     coach: "Consulta en línea con profesor", coachText: "Pediste parametrizar tu entrenamiento con un profesor. La reserva llegará pronto.",
     language: "Idioma", reloadDemo: "Recargar datos de demostración",
   },
   privacy: {
+    error: "No pudimos completarlo. Inténtalo de nuevo.", wrongPassword: "Contraseña incorrecta.",
     title: "Privacidad y datos", text: "Tus datos de salud son sensibles. Tú controlas lo que se guarda.",
     health: "Datos de salud", terms: "Términos y privacidad", marketing: "Novedades por correo", export: "Exportar mis datos",
     erase: "Eliminar mi cuenta", confirm: "Esto borra todo, sin vuelta atrás.", eraseNow: "Eliminar ahora",
   },
   onb: {
+    password: "Crea una contraseña", passwordHint: "Mínimo 10 caracteres.",
+    errors: {
+      email_taken: "Ese correo ya tiene una cuenta.", weak_password: "Usa una contraseña de al menos 10 caracteres.", invalid_email: "Correo no válido.",
+      rate_limited: "Demasiados intentos. Espera unos minutos.", network: "Sin conexión con el servidor. Inténtalo de nuevo.",
+      generic: "No pudimos crear tu cuenta ahora. Inténtalo de nuevo.",
+    },
     freeLesson: "Tu primera clase es gratis", welcomeTitle: "Vamos a conocerte.",
     welcomeText: "En pocos pasos armamos el punto de partida ideal para tu cuerpo.", name: "Tu nombre", email: "Tu correo",
     consentTitle: "Antes de empezar", consentText: "Necesitamos tu consentimiento para tratar tus datos.",
@@ -146,6 +164,7 @@ const es: Dict = {
     restrictions: "Movimientos adaptados para", resultText: "Tu primera clase es gratis. Después, solo elige el plan mensual para continuar.", startFree: "Empezar clase gratis",
   },
   paywall: {
+    error: "No pudimos activar la suscripción. Inténtalo de nuevo.",
     eyebrow: "Clase gratis completada", title: "Sigue evolucionando.", text: "Desbloquea las 9 fases, el 3D completo y el seguimiento de tu progreso.",
     cta: "Suscribirse al plan mensual", already: "Ya eres suscriptor", secure: "Pago seguro. Cancela cuando quieras.",
     testNote: "Entorno de prueba: el botón simula la suscripción. El checkout real (Stripe) se conectará en la próxima etapa.",

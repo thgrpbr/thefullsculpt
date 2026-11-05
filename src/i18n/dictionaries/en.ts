@@ -11,9 +11,19 @@ const en: Dict = {
   intensity: { light: "Light", moderate: "Moderate", intense: "Intense" },
   phase: { label: "Phase {n}", state: { done: "Completed", current: "Current", next: "Next", locked: "Locked" } },
   gate: {
+    login: "I already have an account",
     title: "Let's start with your assessment",
     text: "It sets your starting phase and adapts training to your condition. Or explore the app with test data.",
     start: "Take the assessment", demo: "Explore with test data",
+  },
+  auth: {
+    title: "Sign in", text: "Access your account to pick up where you left off.", password: "Password", submit: "Sign in",
+    noAccount: "Don't have an account yet?", create: "Create account",
+    errors: {
+      invalid_credentials: "Incorrect email or password.", rate_limited: "Too many attempts. Please wait a few minutes.",
+      network: "Can't reach the server. Please try again.", not_installed: "The server hasn't been set up yet.",
+      generic: "We couldn't sign you in right now. Please try again.",
+    },
   },
   anatomy: {
     title: "3D anatomy", layers: "Layers", skin: "Body", muscle: "Muscles", skeleton: "Skeleton", views: "Views",
@@ -99,16 +109,24 @@ const en: Dict = {
     c: "hit the weekly goal ahead of schedule.",
   },
   profile: {
+    logout: "Sign out",
     eyebrow: "Profile", plan: "Plan", planActive: "Monthly plan active", planFree: "Free lesson", subscribe: "Subscribe",
     coach: "Online session with a coach", coachText: "You asked to set up your training with a coach. Scheduling is coming soon.",
     language: "Language", reloadDemo: "Reload demo data",
   },
   privacy: {
+    error: "We couldn't complete that. Please try again.", wrongPassword: "Incorrect password.",
     title: "Privacy and data", text: "Your health data is sensitive. You control what is kept.",
     health: "Health data", terms: "Terms and privacy", marketing: "News by email", export: "Export my data",
     erase: "Delete my account", confirm: "This erases everything, permanently.", eraseNow: "Delete now",
   },
   onb: {
+    password: "Create a password", passwordHint: "At least 10 characters.",
+    errors: {
+      email_taken: "That email already has an account.", weak_password: "Use a password with at least 10 characters.", invalid_email: "Invalid email.",
+      rate_limited: "Too many attempts. Please wait a few minutes.", network: "Can't reach the server. Please try again.",
+      generic: "We couldn't create your account right now. Please try again.",
+    },
     freeLesson: "Your first lesson is free", welcomeTitle: "Let's get to know you.",
     welcomeText: "In a few steps we build the ideal starting point for your body.", name: "Your name", email: "Your email",
     consentTitle: "Before we start", consentText: "We need your consent to process your data.",
@@ -146,6 +164,7 @@ const en: Dict = {
     restrictions: "Movements adapted for", resultText: "Your first lesson is free. After that, just pick the monthly plan to continue.", startFree: "Start free lesson",
   },
   paywall: {
+    error: "We couldn't activate the subscription. Please try again.",
     eyebrow: "Free lesson complete", title: "Keep progressing.", text: "Unlock all 9 phases, the full 3D body and progress tracking.",
     cta: "Subscribe to monthly plan", already: "You're already subscribed", secure: "Secure payment. Cancel anytime.",
     testNote: "Test environment: the button simulates the subscription. Real checkout (Stripe) will be connected in the next step.",

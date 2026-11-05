@@ -5,6 +5,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { classify, emptyAnswers, type Answers, type Assignment } from "./anamnese";
 import { LESSONS_PER_PHASE, lessonId, phaseById } from "./phases";
+import { api, type ServerState } from "./api";
 
 export interface LogEntry {
   date: string; // YYYY-MM-DD (dia local)
@@ -22,8 +23,11 @@ export interface Consents {
 }
 
 export type Sub = "free" | "active";
+/** anon = só neste navegador · demo = dados de teste · user = conta real no servidor (MySQL) */
+export type Mode = "anon" | "demo" | "user";
 
 interface State {
+  mode: Mode;
   profile: { name: string; email: string } | null;
   consents: Consents | null;
   answers: Answers;
@@ -42,8 +46,11 @@ interface State {
   setAnswers: (a: Partial<Answers>) => void;
   setParq: (q: string, value: boolean) => void;
   finishAnamnese: () => Assignment;
-  subscribe: () => void;
-  advancePhase: () => void;
+  subscribe: () => Promise<void>;
+  advancePhase: () => Promise<void>;
+  applyServer: (s: ServerState) => void;
+  refresh: () => Promise<void>;
+  logout: () => Promise<void>;
   toggleMute: () => void;
   completeLesson: (id: string, sec: number, rpe: number, steps: number) => { xp: number; streak: number; newBadges: string[] };
   loadDemo: () => void;
@@ -92,6 +99,7 @@ const earned = (s: Snap) => BADGES.filter((b) => b.test(s)).map((b) => b.id as s
 /* ---------- Store ---------- */
 
 const initial = {
+  mode: "anon" as Mode,
   profile: null,
   consents: null,
   answers: emptyAnswers(),
@@ -116,18 +124,75 @@ export const useStore = create<State>()(
       setAnswers: (a) => set((s) => ({ answers: { ...s.answers, ...a } })),
       setParq: (q, value) => set((s) => ({ answers: { ...s.answers, parq: { ...s.answers.parq, [q]: value } } })),
       finishAnamnese: () => {
-        const assignment = classify(get().answers);
+        const s = get();
+        const assignment = classify(s.answers);
         set({ assignment });
+        if (s.mode === "user") {
+          void api<ServerState>("PUT", "/anamnese", {
+            answers: s.answers,
+            assignment: { phase: assignment.phase, medicalClearance: assignment.medicalClearance, restrictions: assignment.restrictions },
+          })
+            .then(get().applyServer)
+            .catch(() => undefined);
+        }
         return assignment;
       },
-      subscribe: () => set({ sub: "active" }),
-      advancePhase: () =>
-        set((s) => {
-          if (!s.assignment || s.assignment.phase >= 9) return {};
-          const phase = s.assignment.phase + 1;
-          const p = phaseById(phase);
-          return { assignment: { ...s.assignment, phase, level: p.level, intensity: p.intensity } };
-        }),
+      subscribe: async () => {
+        if (get().mode === "user") {
+          get().applyServer(await api<ServerState>("POST", "/subscription/activate"));
+        } else {
+          set({ sub: "active" });
+        }
+      },
+      advancePhase: async () => {
+        const s = get();
+        if (!s.assignment || s.assignment.phase >= 9) return;
+        if (s.mode === "user") {
+          try {
+            get().applyServer(await api<ServerState>("POST", "/phase/advance"));
+          } catch {
+            /* servidor decide se está pronto */
+          }
+          return;
+        }
+        const phase = s.assignment.phase + 1;
+        const p = phaseById(phase);
+        set({ assignment: { ...s.assignment, phase, level: p.level, intensity: p.intensity } });
+      },
+      applyServer: (sv) => {
+        const completed: Record<string, LogEntry> = {};
+        for (const e of sv.log) completed[e.lessonId] = e;
+        set({
+          mode: "user",
+          isDemo: false,
+          profile: { name: sv.profile.name, email: sv.profile.email },
+          consents: sv.consents,
+          answers: sv.answers ?? emptyAnswers(),
+          assignment: sv.assignment,
+          sub: sv.sub,
+          xp: sv.xp,
+          streak: sv.streak,
+          bestStreak: sv.bestStreak,
+          lastDay: sv.lastDay,
+          log: sv.log,
+          completed,
+        });
+      },
+      refresh: async () => {
+        try {
+          get().applyServer(await api<ServerState>("GET", "/me"));
+        } catch {
+          /* sem rede ou sem sessão: mantém o que há */
+        }
+      },
+      logout: async () => {
+        try {
+          await api("POST", "/auth/logout");
+        } catch {
+          /* sessão local é limpa de qualquer forma */
+        }
+        set({ ...initial, answers: emptyAnswers(), muted: get().muted });
+      },
       toggleMute: () => set((s) => ({ muted: !s.muted })),
 
       completeLesson: (id, sec, rpe, steps) => {
@@ -151,6 +216,11 @@ export const useStore = create<State>()(
           log,
           completed: { ...s.completed, [id]: entry },
         });
+        if (s.mode === "user") {
+          void api<ServerState>("POST", "/lessons/complete", { lessonId: id, sec, rpe, steps, day: today })
+            .then(get().applyServer)
+            .catch(() => get().refresh());
+        }
         return { xp, streak, newBadges: after.filter((b) => !before.includes(b)) };
       },
 
@@ -180,6 +250,7 @@ export const useStore = create<State>()(
           completed,
           log,
           isDemo: true,
+          mode: "demo",
         });
       },
 
@@ -187,7 +258,12 @@ export const useStore = create<State>()(
     }),
     {
       name: "tfs-v1",
-      partialize: (s) => ({
+      // Conta real: dados de saúde e progresso NÃO ficam no navegador (vêm do servidor a cada sessão).
+      partialize: (s) =>
+        s.mode === "user"
+          ? { mode: s.mode, muted: s.muted }
+          : {
+        mode: s.mode,
         profile: s.profile,
         consents: s.consents,
         answers: s.answers,
@@ -201,7 +277,7 @@ export const useStore = create<State>()(
         log: s.log,
         isDemo: s.isDemo,
         muted: s.muted,
-      }),
+      },
     },
   ),
 );

@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ChartNoAxesColumn, House, Layers, Trophy, User } from "lucide-react";
 import { LangSwitch, Wordmark } from "@/components/ui";
 import { useI18n } from "@/i18n/provider";
+import { api, ApiError, type ServerState } from "@/lib/api";
 import { useHydrated, useStore } from "@/lib/store";
 
 const NAV = [
@@ -23,10 +24,30 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const assignment = useStore((s) => s.assignment);
   const isDemo = useStore((s) => s.isDemo);
   const loadDemo = useStore((s) => s.loadDemo);
+  const mode = useStore((s) => s.mode);
+  const applyServer = useStore((s) => s.applyServer);
+  const [checked, setChecked] = useState(false);
+
+  // Confere a sessão no servidor (cookie HttpOnly). Modo demonstração não consulta o servidor.
+  useEffect(() => {
+    if (!hydrated || useStore.getState().mode === "demo") return;
+    let alive = true;
+    api<ServerState>("GET", "/me")
+      .then((sv) => alive && applyServer(sv))
+      .catch((e) => {
+        if (alive && e instanceof ApiError && e.status === 401 && useStore.getState().mode === "user") {
+          useStore.getState().eraseAll(); // sessão expirou
+        }
+      })
+      .finally(() => alive && setChecked(true));
+    return () => {
+      alive = false;
+    };
+  }, [hydrated, applyServer]);
 
   const inLesson = pathname.includes("/app/aula/");
 
-  if (!hydrated) return <div className="theme-dark min-h-dvh" />;
+  if (!hydrated || (mode !== "demo" && !checked)) return <div className="theme-dark min-h-dvh" />;
 
   if (!assignment) {
     return (
@@ -36,7 +57,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <p className="mt-3 max-w-md text-muted">{t("gate.text")}</p>
         <div className="mt-10 flex w-full max-w-xs flex-col gap-3">
           <Link href={href("/onboarding")} className="btn btn-primary">{t("gate.start")}</Link>
-          <button type="button" className="btn btn-ghost" onClick={loadDemo}>{t("gate.demo")}</button>
+          <Link href={href("/entrar")} className="btn btn-ghost">{t("gate.login")}</Link>
+          <button type="button" className="text-[12px] text-muted underline underline-offset-4" onClick={loadDemo}>{t("gate.demo")}</button>
         </div>
       </div>
     );

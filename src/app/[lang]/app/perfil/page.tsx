@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CalendarClock, Download, ShieldCheck, Trash2 } from "lucide-react";
+import { CalendarClock, Download, LogOut, ShieldCheck, Trash2 } from "lucide-react";
 import { LangSwitch } from "@/components/ui";
 import { useI18n } from "@/i18n/provider";
+import { api, ApiError } from "@/lib/api";
 import { useStore } from "@/lib/store";
 
 export default function Profile() {
@@ -13,12 +14,24 @@ export default function Profile() {
   const router = useRouter();
   const s = useStore();
   const [confirm, setConfirm] = useState(false);
+  const [pw, setPw] = useState("");
+  const [err, setErr] = useState("");
+  const isUser = s.mode === "user";
 
   const fmt = (iso?: string) => (iso ? new Intl.DateTimeFormat(lang === "pt" ? "pt-BR" : lang, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso)) : "–");
 
-  function exportData() {
+  async function exportData() {
     const { profile, consents, answers, assignment, sub, xp, streak, log } = s;
-    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), profile, consents, answers, assignment, sub, xp, streak, log }, null, 2)], { type: "application/json" });
+    let payload: unknown = { exportedAt: new Date().toISOString(), profile, consents, answers, assignment, sub, xp, streak, log };
+    if (isUser) {
+      try {
+        payload = await api<unknown>("GET", "/privacy/export");
+      } catch {
+        setErr(t("privacy.error"));
+        return;
+      }
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -27,8 +40,22 @@ export default function Profile() {
     URL.revokeObjectURL(url);
   }
 
-  function erase() {
+  async function erase() {
+    setErr("");
+    if (isUser) {
+      try {
+        await api("DELETE", "/privacy/account", { password: pw });
+      } catch (e) {
+        setErr(e instanceof ApiError && e.status === 401 ? t("privacy.wrongPassword") : t("privacy.error"));
+        return;
+      }
+    }
     s.eraseAll();
+    router.replace(href("/"));
+  }
+
+  async function signOut() {
+    await s.logout();
     router.replace(href("/"));
   }
 
@@ -80,6 +107,7 @@ export default function Profile() {
           {confirm ? (
             <div className="flex flex-wrap items-center gap-3">
               <span className="text-[13px] text-ember">{t("privacy.confirm")}</span>
+              {isUser && <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder={t("auth.password")} aria-label={t("auth.password")} autoComplete="current-password" />}
               <button type="button" onClick={erase} className="btn btn-ember !h-11">{t("privacy.eraseNow")}</button>
               <button type="button" onClick={() => setConfirm(false)} className="btn btn-ghost !h-11">{t("common.cancel")}</button>
             </div>
@@ -89,7 +117,12 @@ export default function Profile() {
         </div>
       </section>
 
-      <button type="button" onClick={s.loadDemo} className="mt-6 text-[12px] text-muted underline underline-offset-4">{t("profile.reloadDemo")}</button>
+      {err && <p role="alert" className="mt-4 text-[14px] text-ember">{err}</p>}
+
+      <div className="mt-6 flex flex-wrap items-center gap-6">
+        {isUser && <button type="button" onClick={signOut} className="btn btn-ghost"><LogOut size={16} aria-hidden="true" />{t("profile.logout")}</button>}
+        {!isUser && <button type="button" onClick={s.loadDemo} className="text-[12px] text-muted underline underline-offset-4">{t("profile.reloadDemo")}</button>}
+      </div>
     </div>
   );
 }

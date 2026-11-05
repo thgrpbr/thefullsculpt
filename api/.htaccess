@@ -1,0 +1,15 @@
+Options -Indexes
+DirectoryIndex index.php
+<IfModule mod_rewrite.c>
+RewriteEngine On
+# repassa o cabeçalho Authorization ao PHP (webhook do Pagar.me usa Basic)
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [L]
+</IfModule>
+<FilesMatch "\.(sql|md|inc|log)$">
+  Require all denied
+</FilesMatch>
+<IfModule mod_headers.c>
+Header always set Cache-Control "no-store"
+</IfModule>

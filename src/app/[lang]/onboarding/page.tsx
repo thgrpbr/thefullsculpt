@@ -68,6 +68,7 @@ function Flow({ startAt }: { startAt: number }) {
   const [busy, setBusy] = useState(false);
   const [terms, setTerms] = useState(false);
   const [health, setHealth] = useState(false);
+  const [adult, setAdult] = useState(false);
   const [marketing, setMarketing] = useState(false);
   const [result, setResult] = useState<Assignment | null>(null);
 
@@ -92,7 +93,7 @@ function Flow({ startAt }: { startAt: number }) {
 
   const canNext: Record<Step, boolean> = {
     welcome: name.trim().length > 1 && emailOk && password.length >= 10,
-    consent: terms && health,
+    consent: terms && health && adult,
     goal: !!answers.goal,
     experience: !!answers.experience,
     days: !!answers.days,
@@ -116,7 +117,7 @@ function Flow({ startAt }: { startAt: number }) {
             email: email.trim(),
             password,
             locale: lang,
-            consents: { terms, health, marketing },
+            consents: { terms, health, adult, marketing },
             ref: readRef(),
           }),
         );
@@ -181,13 +182,14 @@ function Flow({ startAt }: { startAt: number }) {
                   {[
                     { k: "terms", v: terms, set: setTerms, req: true },
                     { k: "health", v: health, set: setHealth, req: true },
+                    { k: "adult", v: adult, set: setAdult, req: true },
                     { k: "marketing", v: marketing, set: setMarketing, req: false },
                   ].map((c) => (
                     <label key={c.k} className="card flex cursor-pointer items-start gap-4 p-5">
                       <input type="checkbox" checked={c.v} onChange={(e) => c.set(e.target.checked)} className="mt-1 h-5 w-5 accent-[#161514]" />
                       <span className="text-[14px] leading-relaxed">
                         {t(`onb.consent.${c.k}`)} {c.req ? <span className="text-ember">*</span> : <span className="text-muted">({t("common.optional")})</span>}
-                        {c.k !== "marketing" && <> <a href={href(`/legal?doc=${c.k === "terms" ? "terms" : "consent_health"}`)} target="_blank" rel="noopener noreferrer" className="whitespace-nowrap text-bronze underline underline-offset-2" onClick={(e) => e.stopPropagation()}>{c.k === "terms" ? "→ Termos" : "→ Termo"}</a></>}
+                        {(c.k === "terms" || c.k === "health") && <> <a href={href(`/legal?doc=${c.k === "terms" ? "terms" : "consent_health"}`)} target="_blank" rel="noopener noreferrer" className="whitespace-nowrap text-bronze underline underline-offset-2" onClick={(e) => e.stopPropagation()}>{c.k === "terms" ? "→ Termos" : "→ Termo"}</a></>}
                       </span>
                     </label>
                   ))}

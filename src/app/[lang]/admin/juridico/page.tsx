@@ -6,20 +6,22 @@ import { Printer, UserPlus } from "lucide-react";
 import Markdown from "@/components/Markdown";
 import { useI18n } from "@/i18n/provider";
 import { dateBr, ERRORS, send, useApi } from "@/lib/admin";
-import { useStore } from "@/lib/store";
+import { AuditTrail, CompanyCard } from "@/components/admin/LegalAudit";
 import { Badge, Btn, Card, DataTable, Drawer, Field, inputCls, Modal, PageHead, Spinner, Stat, Tabs, useAdmin, type Col, type Tone } from "@/components/admin/ui";
 
 interface Latest { id: number; version: number; status: string; updated_at: string; change_note: string | null }
 interface Doc { slug: string; title: string; category: string; required: boolean; latest: Latest | null; published: { version: number; published_at: string } | null; open_comments: number }
-interface List { docs: Doc[]; summary: { total: number; required: number; required_published: number; draft: number; review: number; approved: number; published: number; open_comments: number; readiness: number }; consent_version: string; role: string }
+interface List { docs: Doc[]; summary: { total: number; required: number; required_published: number; draft: number; review: number; approved: number; published: number; open_comments: number; readiness: number }; consent_version: string; role: string; perms: string[]; company: Record<string, string> }
 interface Detail {
   doc: { slug: string; title: string; category: string; required: boolean };
   selected: { id: number; version: number; status: string; content: Record<"pt" | "en" | "es", string>; change_note: string | null } | null;
   versions: { id: number; version: number; status: string; change_note: string | null; created_at: string; updated_at: string; approved_at: string | null; published_at: string | null; approved_by_name: string | null; author: string | null }[];
   comments: { id: number; version_id: number | null; author_name: string; body: string; resolved: number; created_at: string }[];
   role: string;
+  perms: string[];
 }
 
+type Tab = "editar" | "historico" | "auditoria" | "comentarios";
 const ST_PT: Record<string, string> = { draft: "Rascunho", review: "Em revisão", approved: "Aprovado", published: "Publicado", archived: "Arquivado" };
 const ST_TONE: Record<string, Tone> = { draft: "neutral", review: "warn", approved: "info", published: "ok", archived: "neutral" };
 const CAT_PT: Record<string, string> = { lgpd: "LGPD", contratos: "Contratos", saude: "Saúde", seguranca: "Segurança" };
@@ -43,7 +45,10 @@ export default function Legal() {
     { key: "v", head: "Versão", align: "right", cell: (d) => <span>v{d.latest?.version ?? "–"}{d.published && d.latest?.version !== d.published.version && <span className="ml-1 text-[10px] text-muted">(no ar: v{d.published.version})</span>}</span> },
     { key: "u", head: "Atualizado", cell: (d) => <span className="text-muted">{dateBr(d.latest?.updated_at)}</span> },
     { key: "k", head: "Comentários", align: "right", cell: (d) => d.open_comments ? <Badge tone="warn">{d.open_comments} em aberto</Badge> : <span className="text-muted">–</span> },
-    { key: "p", head: "Página pública", cell: (d) => d.published ? <Link href={href(`/legal?doc=${d.slug}`)} onClick={(e) => e.stopPropagation()} target="_blank" className="text-[11px] text-bronze">abrir ↗</Link> : <span className="text-[11px] text-muted">não publicada</span> },
+    { key: "p", head: "Página no site", cell: (d) => (
+      <Link href={href(`/legal?doc=${d.slug}`)} onClick={(e) => e.stopPropagation()} target="_blank" rel="noopener" title={d.published ? "Abrir a página publicada" : "Ainda não publicada: a página mostrará “documento indisponível”"} className={`whitespace-nowrap text-[11px] ${d.published ? "text-bronze" : "text-muted"}`}>
+        {d.published ? `ver online · v${d.published.version} ↗` : "ainda fora do ar ↗"}
+      </Link>) },
   ];
 
   return (
@@ -62,9 +67,13 @@ export default function Legal() {
         <Stat label="Comentários em aberto" value={s.open_comments} sub={`consentimento v${data.consent_version}`} />
       </div>
 
-      <Card pad={false} title="Todos os documentos jurídicos" sub="Fluxo: rascunho → revisão do advogado → aprovado → publicado (só o administrador publica)">
+      <Card pad={false} title="Todos os documentos jurídicos" sub="Fluxo: rascunho → revisão do advogado → aprovado → publicado (a publicação exige a permissão “Publicar documentos no site”)">
         <DataTable cols={cols} rows={data.docs.map((d) => ({ ...d, id: d.slug }))} onRow={(d) => setOpen(d.slug)} empty="Nenhum documento." />
       </Card>
+      <div className="mt-6 grid gap-4 lg:grid-cols-1">
+        <AuditTrail title="Auditoria de todas as edições" limit={50} />
+        <CompanyCard key={JSON.stringify(data.company)} company={data.company} canEdit={data.perms.includes("legal.edit")} onSaved={reload} toast={toast} />
+      </div>
       <p className="mt-4 max-w-3xl text-[11px] leading-relaxed text-muted">Os textos iniciais são <b className="font-medium">modelos em rascunho</b> e não constituem aconselhamento jurídico. Campos entre [COLCHETES] precisam ser preenchidos. Ao publicar Privacidade, Termos, Aviso de saúde ou Termo de dados de saúde, a versão do consentimento muda e passa a ser gravada nos novos cadastros.</p>
 
       <Drawer open={open !== null} onClose={() => setOpen(null)} title="Documento jurídico" width={860}>
@@ -108,16 +117,16 @@ function Invite({ open, onClose }: { open: boolean; onClose: () => void }) {
 }
 
 function Editor({ slug, onChanged, toast }: { slug: string; onChanged: () => void; toast: (m: string, t?: "ok" | "bad") => void }) {
-  const me = useStore((s) => s.role);
   const [vid, setVid] = useState<number | null>(null);
   const { data, reload } = useApi<Detail>(`/admin/legal/${slug}${vid ? `?v=${vid}` : ""}`);
-  const [tab, setTab] = useState<"editar" | "historico" | "comentarios">("editar");
+  const [tab, setTab] = useState<Tab>("editar");
   if (!data || !data.selected) return <div className="flex justify-center py-24"><Spinner /></div>;
   // `key` reinicia o estado do formulário quando muda a versão carregada
-  return <EditorBody key={`${slug}-${data.selected.id}-${data.selected.status}`} d={data} me={me} tab={tab} setTab={setTab} setVid={setVid} reload={() => { reload(); onChanged(); }} toast={toast} />;
+  return <EditorBody key={`${slug}-${data.selected.id}-${data.selected.status}`} d={data} tab={tab} setTab={setTab} setVid={setVid} reload={() => { reload(); onChanged(); }} toast={toast} />;
 }
 
-function EditorBody({ d, me, tab, setTab, setVid, reload, toast }: { d: Detail; me: string | null; tab: "editar" | "historico" | "comentarios"; setTab: (t: "editar" | "historico" | "comentarios") => void; setVid: (n: number | null) => void; reload: () => void; toast: (m: string, t?: "ok" | "bad") => void }) {
+function EditorBody({ d, tab, setTab, setVid, reload, toast }: { d: Detail; tab: Tab; setTab: (t: Tab) => void; setVid: (n: number | null) => void; reload: () => void; toast: (m: string, t?: "ok" | "bad") => void }) {
+  const { href } = useI18n();
   const sel = d.selected!;
   const latest = d.versions[0];
   const isLatest = sel.id === latest.id;
@@ -126,7 +135,11 @@ function EditorBody({ d, me, tab, setTab, setVid, reload, toast }: { d: Detail; 
   const [note, setNote] = useState(sel.change_note ?? "");
   const [comment, setComment] = useState("");
   const [preview, setPreview] = useState(false);
-  const editable = isLatest && (sel.status === "draft" || sel.status === "review" || sel.status === "approved" || sel.status === "published");
+  const canEdit = d.perms.includes("legal.edit");
+  const canPublish = d.perms.includes("legal.publish");
+  const editable = canEdit && isLatest && (sel.status === "draft" || sel.status === "review" || sel.status === "approved" || sel.status === "published");
+  const publicPath = href(`/legal?doc=${d.doc.slug}`);
+  const published = d.versions.find((v) => v.status === "published");
   const open = d.comments.filter((c) => !c.resolved).length;
 
   async function act(fn: Promise<{ ok: boolean; code?: string }>, ok: string) {
@@ -146,20 +159,26 @@ function EditorBody({ d, me, tab, setTab, setVid, reload, toast }: { d: Detail; 
           <Badge tone={ST_TONE[sel.status]}>{ST_PT[sel.status]} · v{sel.version}</Badge>
           {d.doc.required && <Badge tone="dark">essencial</Badge>}
         </div>
+        <p className="mt-2 text-[12px] text-muted">
+          Página no site:{" "}
+          <Link href={publicPath} target="_blank" rel="noopener" className="font-mono text-bronze underline underline-offset-4">{publicPath}</Link>
+          {published ? <> · versão no ar: v{published.version}, publicada em {dateBr(published.published_at)}</> : " · ainda não publicada (o público vê “documento indisponível”)"}
+        </p>
         <div className="mt-4 flex flex-wrap gap-2">
-          {isLatest && sel.status === "draft" && <Btn variant="primary" onClick={() => act(send("POST", `/admin/legal/${d.doc.slug}/submit`), "Enviado para revisão.")}>Enviar para revisão</Btn>}
-          {isLatest && sel.status === "review" && <Btn variant="primary" onClick={() => act(send("POST", `/admin/legal/${d.doc.slug}/approve`), "Documento aprovado.")}>Aprovar</Btn>}
-          {isLatest && (sel.status === "review" || sel.status === "approved") && <Btn onClick={() => act(send("POST", `/admin/legal/${d.doc.slug}/reopen`), "Voltou para rascunho.")}>Devolver para rascunho</Btn>}
-          {isLatest && sel.status === "approved" && (me === "admin" ? <Btn variant="ember" onClick={() => act(send("POST", `/admin/legal/${d.doc.slug}/publish`), "Documento publicado.")}>Publicar agora</Btn> : <span className="self-center text-[12px] text-muted">Aguardando publicação pelo administrador.</span>)}
+          {canEdit && isLatest && sel.status === "draft" && <Btn variant="primary" onClick={() => act(send("POST", `/admin/legal/${d.doc.slug}/submit`), "Enviado para revisão.")}>Enviar para revisão</Btn>}
+          {canEdit && isLatest && sel.status === "review" && <Btn variant="primary" onClick={() => act(send("POST", `/admin/legal/${d.doc.slug}/approve`), "Documento aprovado.")}>Aprovar</Btn>}
+          {canEdit && isLatest && (sel.status === "review" || sel.status === "approved") && <Btn onClick={() => act(send("POST", `/admin/legal/${d.doc.slug}/reopen`), "Voltou para rascunho.")}>Devolver para rascunho</Btn>}
+          {isLatest && sel.status === "approved" && (canPublish ? <Btn variant="ember" onClick={() => act(send("POST", `/admin/legal/${d.doc.slug}/publish`), "Documento publicado.")}>Publicar agora</Btn> : <span className="self-center text-[12px] text-muted">Aguardando publicação por quem tem a permissão de publicar.</span>)}
         </div>
       </div>
 
-      <div className="px-6"><Tabs value={tab} onChange={setTab} items={[{ value: "editar", label: "Texto" }, { value: "historico", label: "Histórico", count: d.versions.length }, { value: "comentarios", label: "Comentários do advogado", count: open }]} /></div>
+      <div className="px-6"><Tabs value={tab} onChange={setTab} items={[{ value: "editar", label: "Texto" }, { value: "historico", label: "Versões", count: d.versions.length }, { value: "auditoria", label: "Auditoria (quem editou)" }, { value: "comentarios", label: "Comentários do advogado", count: open }]} /></div>
 
       <div className="p-6">
         {tab === "editar" && (
           <div className="space-y-4">
-            {!isLatest && <p className="rounded-xl bg-surface2 px-4 py-2.5 text-[12px] text-muted">Você está vendo a versão {sel.version} (somente leitura). <button type="button" className="text-bronze underline" onClick={() => setVid(null)}>Voltar à versão mais recente</button></p>}
+            {!isLatest && <p className="rounded-xl bg-surface2 px-4 py-2.5 text-[12px] text-muted">Você está vendo a versão {sel.version} (somente leitura). <button type="button" className="text-bronze underline" onClick={() => setVid(null)}>Voltar à versão mais recente</button>{canEdit && <> · <button type="button" className="text-bronze underline" onClick={() => act(send("PUT", `/admin/legal/${d.doc.slug}/draft`, { content, change_note: `Restaurada a partir da v${sel.version}` }), `Versão ${sel.version} restaurada como novo rascunho.`).then(() => setVid(null))}>Restaurar esta versão como novo rascunho</button></>}</p>}
+            {!canEdit && <p className="rounded-xl bg-surface2 px-4 py-2.5 text-[12px] text-muted">Seu perfil pode apenas ler este documento.</p>}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <Tabs value={lang} onChange={setLang} items={[{ value: "pt", label: "Português" }, { value: "en", label: "English" }, { value: "es", label: "Español" }]} />
               <button type="button" onClick={() => setPreview((p) => !p)} className="text-[12px] text-bronze">{preview ? "Editar" : "Pré-visualizar"}</button>
@@ -167,7 +186,7 @@ function EditorBody({ d, me, tab, setTab, setVid, reload, toast }: { d: Detail; 
             {preview ? (
               <div className="min-h-[320px] rounded-2xl border-[0.5px] border-line bg-surface p-6 text-[14px]"><Markdown text={content[lang] || "_(vazio neste idioma)_"} /></div>
             ) : (
-              <textarea value={content[lang]} onChange={(e) => setContent({ ...content, [lang]: e.target.value })} readOnly={!isLatest} spellCheck className="min-h-[420px] w-full rounded-2xl border-[0.5px] border-line bg-surface p-4 font-mono text-[12px] leading-relaxed outline-none focus:border-bronze" aria-label={`Texto em ${lang}`} />
+              <textarea value={content[lang]} onChange={(e) => setContent({ ...content, [lang]: e.target.value })} readOnly={!editable} spellCheck className="min-h-[420px] w-full rounded-2xl border-[0.5px] border-line bg-surface p-4 font-mono text-[12px] leading-relaxed outline-none focus:border-bronze" aria-label={`Texto em ${lang}`} />
             )}
             <p className="text-[11px] text-muted">Formatação: <span className="font-mono"># Título</span>, <span className="font-mono">## Seção</span>, <span className="font-mono">- lista</span>, <span className="font-mono">**negrito**</span>, tabelas com <span className="font-mono">|</span>. {lang !== "pt" && "Se um idioma ficar vazio, a página pública usa o português."}</p>
             {editable && (
@@ -192,6 +211,8 @@ function EditorBody({ d, me, tab, setTab, setVid, reload, toast }: { d: Detail; 
             ))}
           </ul>
         )}
+
+        {tab === "auditoria" && <AuditTrail slug={d.doc.slug} title="Quem editou e o que mudou" limit={200} />}
 
         {tab === "comentarios" && (
           <div className="space-y-4">

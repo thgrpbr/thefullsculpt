@@ -108,7 +108,7 @@ export default function GatewaysPage() {
           </Card>
         ))}
       </div>
-      <p className="mt-6 max-w-3xl text-[11px] leading-relaxed text-muted">As credenciais são guardadas <b className="font-medium">criptografadas</b> e nunca voltam para a tela (só as chaves públicas). Os dados do cartão são digitados diretamente no formulário do provedor (checkout transparente) e <b className="font-medium">não passam pelo nosso servidor</b>. O recebimento de pagamentos pelo Stripe já está habilitado via webhook assinado; os demais provedores recebem e registram eventos até a integração do respectivo checkout.</p>
+      <p className="mt-6 max-w-3xl text-[11px] leading-relaxed text-muted">As credenciais são guardadas <b className="font-medium">criptografadas</b> e nunca voltam para a tela (só as chaves públicas). Os dados do cartão são digitados diretamente no formulário do provedor (checkout transparente) e <b className="font-medium">não passam pelo nosso servidor</b>. O backend já está pronto para <b className="font-medium">Stripe, Mercado Pago, Pagar.me e Asaas</b>: cadastro seguro das credenciais, teste de conexão e recebimento de pagamentos e cancelamentos por webhook verificado (informe o segredo/token do webhook ao cadastrar). O formulário de checkout de cada provedor será conectado assim que a empresa parceira for definida e as credenciais de sandbox estiverem aqui; valide cada provedor em sandbox antes de ativar em produção.</p>
 
       <Modal open={edit !== null} onClose={() => setEdit(null)} title={edit ? `${edit.item ? "Editar" : "Conectar"} ${edit.cat.name}` : ""} width={600}>
         {edit && <Form key={edit.item?.id ?? edit.cat.provider} cat={edit.cat} item={edit.item} onDone={() => { setEdit(null); reload(); }} />}

@@ -39,7 +39,7 @@ class Client {
 
 const email = `teste${Date.now()}@exemplo.com`;
 const password = "uma-senha-bem-longa-123";
-const consents = { terms: true, health: true, marketing: false };
+const consents = { terms: true, health: true, adult: true, marketing: false };
 const a = new Client();
 
 console.log("Básico e segurança");
@@ -47,7 +47,7 @@ ok("health", (await a.call("GET", "/health")).status === 200);
 ok("POST sem X-Requested-With => 403", (await a.call("POST", "/auth/register", { name: "A B", email, password, consents }, { csrf: false })).status === 403);
 ok("Origin de outro site => 403", (await a.call("POST", "/auth/register", { name: "A B", email, password, consents }, { headers: { Origin: "https://evil.example" } })).status === 403);
 ok("senha fraca => 422", (await a.call("POST", "/auth/register", { name: "A B", email, password: "curta", consents })).status === 422);
-ok("sem consentimento de saúde => 422", (await a.call("POST", "/auth/register", { name: "A B", email, password, consents: { terms: true, health: false } })).status === 422);
+ok("sem consentimento de saúde => 422", (await a.call("POST", "/auth/register", { name: "A B", email, password, consents: { terms: true, health: false, adult: true } })).status === 422);
 ok("rota inexistente => 404", (await a.call("GET", "/nada")).status === 404);
 
 console.log("Cadastro e sessão");

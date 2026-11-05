@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowLeft, Check, Lock } from "lucide-react";
 import { Wordmark } from "@/components/ui";
+import { LegalFooter } from "@/components/LegalBits";
 import { useI18n } from "@/i18n/provider";
 import { formatBrl, PLAN } from "@/lib/config";
 import { useHydrated, useStore } from "@/lib/store";
@@ -16,6 +17,7 @@ export default function Subscribe() {
   const subscribe = useStore((s) => s.subscribe);
   const sub = useStore((s) => s.sub);
   const [busy, setBusy] = useState(false);
+  const [agree, setAgree] = useState(false);
 
   const [error, setError] = useState("");
 
@@ -55,7 +57,15 @@ export default function Subscribe() {
               <li key={k} className="flex items-start gap-3"><Check size={17} className="mt-0.5 shrink-0 text-bronze" aria-hidden="true" />{t(`pricing.${k}`)}</li>
             ))}
           </ul>
-          <button type="button" onClick={pay} disabled={busy || sub === "active"} className="btn btn-ember mt-8 w-full disabled:opacity-60">
+          <div className="mt-6 space-y-3 rounded-2xl bg-surface2 p-4 text-[12px] leading-relaxed text-muted">
+            <p>{t("legalui.renew")}</p>
+            <p>{t("legalui.withdraw")}</p>
+            <label className="flex cursor-pointer items-start gap-3 text-fg">
+              <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#161514]" />
+              <span>{t("legalui.accept")} <Link href={href("/legal?doc=terms")} target="_blank" className="text-bronze underline underline-offset-2">{t("legalui.terms")}</Link> · <Link href={href("/legal?doc=refund")} target="_blank" className="text-bronze underline underline-offset-2">{t("legalui.refund")}</Link></span>
+            </label>
+          </div>
+          <button type="button" onClick={pay} disabled={busy || sub === "active" || !agree} className="btn btn-ember mt-6 w-full disabled:opacity-60">
             <Lock size={15} aria-hidden="true" />
             {sub === "active" ? t("paywall.already") : busy ? t("common.loading") : t("paywall.cta")}
           </button>
@@ -65,6 +75,7 @@ export default function Subscribe() {
 
         <p className="mt-6 rounded-xl border-[0.5px] border-dashed border-line p-3 text-[12px] text-muted">{t("paywall.testNote")}</p>
         <p className="mt-6 text-[12px] text-muted">{t("paywall.mobile")}</p>
+        <LegalFooter compact />
       </main>
     </div>
   );

@@ -368,7 +368,7 @@ final class State
         );
         $p = Game::phase($phase);
         return [
-            'profile' => ['name' => $user['name'], 'email' => $user['email'], 'role' => $user['role']],
+            'profile' => ['name' => $user['name'], 'email' => $user['email'], 'role' => $user['role'], 'permissions' => Perms::of($user), 'profileLabel' => $user['profile_label'] ?? null],
             'consents' => [
                 'health' => (bool) ($consents['health']['granted'] ?? false),
                 'terms' => (bool) ($consents['terms']['granted'] ?? false),

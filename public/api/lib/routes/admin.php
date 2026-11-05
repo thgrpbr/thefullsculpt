@@ -19,7 +19,7 @@ use TFS\Seed;
 use TFS\Settings;
 use TFS\Util;
 
-$admin = requireRole($pdo, $cfg, ['admin']);
+$admin = requireRole($pdo, $cfg, ['admin', 'legal', 'staff']);  // permissão por rota já validada em index.php
 $aid = (int) $admin['id'];
 $route = "$method $path";
 $m = [];

@@ -8,6 +8,7 @@ require __DIR__ . '/lib/analytics.php';
 require __DIR__ . '/lib/demo.php';
 require __DIR__ . '/lib/mail.php';
 require __DIR__ . '/lib/gateways.php';
+require __DIR__ . '/lib/perms.php';
 
 use TFS\Audit;
 use TFS\Auth;
@@ -79,8 +80,18 @@ function str(mixed $v, int $min, int $max): string
     return $v;
 }
 
+if (str_starts_with($path, '/admin')) {
+    // porta única do painel: perfil + permissão detalhada por rota (rota sem regra = só o administrador master)
+    $gate = requireRole($pdo, $cfg, ['admin', 'legal', 'staff']);
+    $need = \TFS\Perms::required($method, $path);
+    if ($need === null ? $gate['role'] !== 'admin' : !\TFS\Perms::can($gate, $need)) {
+        Http::fail(403, 'forbidden');
+    }
+}
 if (str_starts_with($path, '/admin/legal')) {
     require __DIR__ . '/lib/routes/legal.php';
+} elseif (str_starts_with($path, '/admin/users')) {
+    require __DIR__ . '/lib/routes/users.php';
 } elseif (str_starts_with($path, '/admin')) {
     require __DIR__ . '/lib/routes/admin.php';
 }
@@ -128,7 +139,7 @@ switch ("$method $path") {
             Http::fail(422, 'weak_password');
         }
         $c = is_array($b['consents'] ?? null) ? $b['consents'] : [];
-        if (($c['terms'] ?? false) !== true || ($c['health'] ?? false) !== true) {
+        if (($c['terms'] ?? false) !== true || ($c['health'] ?? false) !== true || ($c['adult'] ?? false) !== true) {   // 18+ declarado (LGPD art. 14)
             Http::fail(422, 'consent_required');
         }
         $locale = in_array($b['locale'] ?? '', ['pt', 'en', 'es'], true) ? $b['locale'] : 'pt';
@@ -152,7 +163,7 @@ switch ("$method $path") {
                 [$email, Auth::hash($password), $name, 'student', $teacherId, $locale, $now, $source]);
             $uid = (int) $pdo->lastInsertId();
             DB::run($pdo, 'INSERT INTO user_stats (user_id, updated_at) VALUES (?, ?)', [$uid, $now]);
-            foreach (['terms' => true, 'health' => true, 'marketing' => ($c['marketing'] ?? false) === true] as $type => $granted) {
+            foreach (['terms' => true, 'health' => true, 'adult' => true, 'marketing' => ($c['marketing'] ?? false) === true] as $type => $granted) {
                 DB::run($pdo, 'INSERT INTO consents (user_id, type, granted, version, ip_hash, created_at) VALUES (?, ?, ?, ?, ?, ?)',
                     [$uid, $type, $granted ? 1 : 0, CONSENT_VERSION, Crypto::ipHash($cfg), $now]);
             }

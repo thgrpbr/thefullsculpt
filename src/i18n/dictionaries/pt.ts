@@ -175,6 +175,7 @@ const pt = {
     consent: {
       terms: "Li e aceito os Termos de Uso e a Política de Privacidade.",
       health: "Autorizo o tratamento dos meus dados de saúde (anamnese) para personalizar meu treino, conforme a LGPD. Posso revogar quando quiser.",
+      adult: "Declaro ter 18 anos ou mais (menores só com um responsável legal).",
       marketing: "Quero receber novidades e dicas por e-mail.",
     },
     consentFoot: "Seus dados ficam protegidos. Você pode exportá-los ou excluí-los quando quiser.",
@@ -211,6 +212,18 @@ const pt = {
     cta: "Assinar plano mensal", already: "Você já é assinante", secure: "Pagamento seguro. Cancele quando quiser.",
     testNote: "Ambiente de teste: o botão simula a assinatura. O checkout real (Stripe) será conectado na próxima etapa.",
     mobile: "Depois de assinar, entre também pelo app no iOS e no Android com o mesmo login.",
+  },
+  legalui: {
+    cookieTitle: "Cookies e armazenamento",
+    cookieText: "Usamos apenas cookies e armazenamento estritamente necessários (login, idioma, preferências e segurança). Não usamos rastreamento publicitário.",
+    cookieMore: "Política de cookies", cookieOk: "Entendi",
+    rights: "Seus direitos (LGPD)", dpo: "Encarregado de dados (DPO)", contact: "Contato", cnpj: "CNPJ",
+    renew: "A assinatura renova automaticamente todo mês até ser cancelada. Você cancela quando quiser, no seu perfil, sem multa.",
+    withdraw: "Direito de arrependimento: reembolso integral em até 7 dias após a primeira contratação (CDC, art. 49).",
+    accept: "Li e concordo com os Termos de Uso, a Política de Reembolso e a renovação automática mensal.",
+    terms: "Termos", refund: "Reembolso", privacy: "Privacidade",
+    healthNote: "Conteúdo educativo: não substitui avaliação médica. Pare se sentir dor, tontura ou falta de ar. Em caso de dúvida, consulte seu médico.",
+    needAccept: "Confirme o aceite para continuar.",
   },
   pricing: {
     name: "Plano mensal", per: "/mês", p1: "Todas as aulas das 9 fases", p2: "Corpo 3D com biomecânica e músculos",

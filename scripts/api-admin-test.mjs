@@ -102,7 +102,7 @@ const carla = new Client();
 ok("professora loga com a senha temporária", (await carla.login("carla@teste.local", nt.json.tempPassword)).status === 200);
 // aluno novo indicado pelo código
 const refStudent = new Client();
-const reg = await refStudent.call("POST", "/auth/register", { name: "Aluno Indicado", email: `ind${Date.now()}@teste.local`, password: "uma-senha-bem-longa-123", consents: { terms: true, health: true }, ref: nt.json.code.toLowerCase() });
+const reg = await refStudent.call("POST", "/auth/register", { name: "Aluno Indicado", email: `ind${Date.now()}@teste.local`, password: "uma-senha-bem-longa-123", consents: { terms: true, health: true, adult: true }, ref: nt.json.code.toLowerCase() });
 ok("cadastro com código de indicação", reg.status === 201);
 const list = await admin.call("GET", "/admin/students?q=Indicado");
 const indicado = list.json.rows[0];

@@ -82,7 +82,7 @@ console.log("E-mails automáticos");
 await clearInbox();
 const reg = new Client();
 const email = `novo${Date.now()}@teste.local`;
-await reg.call("POST", "/auth/register", { name: "Nova Aluna", email, password: "uma-senha-bem-longa-123", consents: { terms: true, health: true }, locale: "en" });
+await reg.call("POST", "/auth/register", { name: "Nova Aluna", email, password: "uma-senha-bem-longa-123", consents: { terms: true, health: true, adult: true }, locale: "en" });
 mails = await inbox();
 ok("cadastro envia e-mail de boas-vindas (idioma en)", mails.length === 1 && mails[0].to.includes(email) && /Welcome/.test(Buffer.from(mails[0].data.match(/Subject: =\?UTF-8\?B\?([^?]+)/)[1], "base64").toString()));
 await clearInbox();

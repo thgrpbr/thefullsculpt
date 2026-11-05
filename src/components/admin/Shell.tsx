@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import {
-  CalendarClock, ChartNoAxesColumn, CreditCard, Dumbbell, Landmark, LogOut, Scale, Settings, ShieldCheck, UsersRound, UserRoundCheck, ArrowUpRight,
+  CalendarClock, ChartNoAxesColumn, CreditCard, Dumbbell, KeyRound, Landmark, LogOut, Scale, Settings, ShieldCheck, UsersRound, UserRoundCheck, ArrowUpRight,
 } from "lucide-react";
 import { useI18n } from "@/i18n/provider";
 import { api, ApiError, type ServerState } from "@/lib/api";
@@ -12,18 +12,21 @@ import { useHydrated, useStore } from "@/lib/store";
 import { Segmented, Wordmark } from "@/components/ui";
 import { AdminCtx, Toasts, useToasts, type DemoMode } from "./ui";
 
+/** `perm`: permissões que liberam o item (qualquer uma); "master" = só o administrador master. */
 const NAV = [
-  { path: "/admin", label: "Visão geral", icon: ChartNoAxesColumn, exact: true },
-  { path: "/admin/alunos", label: "Alunos", icon: UsersRound },
-  { path: "/admin/professores", label: "Professores", icon: UserRoundCheck },
-  { path: "/admin/metodo", label: "Método e exercícios", icon: Dumbbell },
-  { path: "/admin/pagamentos", label: "Pagamentos", icon: CreditCard },
-  { path: "/admin/gateways", label: "Gateways", icon: Landmark },
-  { path: "/admin/consultas", label: "Consultas", icon: CalendarClock },
-  { path: "/admin/configuracoes", label: "Configurações", icon: Settings },
-  { path: "/admin/juridico", label: "Jurídico", icon: Scale },
-  { path: "/admin/auditoria", label: "Auditoria e LGPD", icon: ShieldCheck },
+  { path: "/admin", label: "Visão geral", icon: ChartNoAxesColumn, exact: true, perm: ["overview.view"] },
+  { path: "/admin/alunos", label: "Alunos", icon: UsersRound, perm: ["students.view"] },
+  { path: "/admin/professores", label: "Professores", icon: UserRoundCheck, perm: ["teachers.view"] },
+  { path: "/admin/metodo", label: "Método e exercícios", icon: Dumbbell, perm: ["method.view"] },
+  { path: "/admin/pagamentos", label: "Pagamentos", icon: CreditCard, perm: ["payments.view", "commissions.view"] },
+  { path: "/admin/gateways", label: "Gateways", icon: Landmark, perm: ["gateways.manage"] },
+  { path: "/admin/consultas", label: "Consultas", icon: CalendarClock, perm: ["appointments.view"] },
+  { path: "/admin/configuracoes", label: "Configurações", icon: Settings, perm: ["settings.manage", "system.manage"] },
+  { path: "/admin/juridico", label: "Jurídico", icon: Scale, perm: ["legal.view"] },
+  { path: "/admin/auditoria", label: "Auditoria e LGPD", icon: ShieldCheck, perm: ["audit.view"] },
+  { path: "/admin/usuarios", label: "Equipe e permissões", icon: KeyRound, perm: "master" },
 ] as const;
+type NavItem = (typeof NAV)[number];
 
 /** Casca do painel: confere a sessão no servidor e o papel exigido. */
 export default function Shell({ children, role }: { children: ReactNode; role: "admin" | "teacher" }) {
@@ -32,6 +35,7 @@ export default function Shell({ children, role }: { children: ReactNode; role: "
   const router = useRouter();
   const hydrated = useHydrated();
   const userRole = useStore((s) => s.role);
+  const perms = useStore((s) => s.perms);
   const name = useStore((s) => s.profile?.name);
   const applyServer = useStore((s) => s.applyServer);
   const logout = useStore((s) => s.logout);
@@ -62,11 +66,21 @@ export default function Shell({ children, role }: { children: ReactNode; role: "
     return s ? `${path}${path.includes("?") ? "&" : "?"}${s}` : path;
   };
 
-  if (!hydrated || !checked) return <div className="theme-light min-h-dvh" />;
+  const staffRole = userRole === "admin" || userRole === "legal" || userRole === "staff";
+  const allowed: readonly NavItem[] = role === "admin"
+    ? NAV.filter((n) => (n.perm === "master" ? userRole === "admin" : userRole === "admin" || n.perm.some((p) => perms.includes(p))))
+    : [];
+  const isLegalOnly = role === "admin" && userRole !== "admin" && allowed.length > 0 && allowed.every((n) => n.path === "/admin/juridico");
+  const here = allowed.find((n) => ("exact" in n && n.exact ? pathname === href(n.path) || pathname === href(n.path) + "/" : pathname.startsWith(href(n.path))));
+  const home = allowed[0];
 
-  const isLegalOnly = role === "admin" && userRole === "legal";
-  const onLegal = pathname.includes("/admin/juridico");
-  if ((userRole !== role && !isLegalOnly) || (isLegalOnly && !onLegal)) {
+  const redirect = hydrated && checked && role === "admin" && staffRole && !here && home ? href(home.path) : null;
+  useEffect(() => {
+    // acesso a uma área sem permissão: leva para a primeira área liberada
+    if (redirect) router.replace(redirect);
+  }, [redirect, router]);
+  if (!hydrated || !checked || redirect) return <div className="theme-light min-h-dvh" />;
+  if ((role === "admin" && !(staffRole && here)) || (role === "teacher" && userRole !== "teacher")) {
     return (
       <div className="theme-light flex min-h-dvh flex-col items-center justify-center px-6 text-center">
         <Wordmark size="md" stacked />
@@ -74,12 +88,12 @@ export default function Shell({ children, role }: { children: ReactNode; role: "
         <p className="mt-3 max-w-sm text-[14px] text-muted">
           {userRole ? "Seu perfil não tem permissão para esta área." : "Entre com uma conta autorizada para continuar."}
         </p>
-        <Link href={href(isLegalOnly ? "/admin/juridico" : userRole ? "/app" : "/entrar")} className="btn btn-primary mt-8">{isLegalOnly ? "Ir para o Jurídico" : userRole ? "Voltar ao app" : "Entrar"}</Link>
+        <Link href={href(userRole ? "/app" : "/entrar")} className="btn btn-primary mt-8">{userRole ? "Voltar ao app" : "Entrar"}</Link>
       </div>
     );
   }
 
-  const nav = isLegalOnly ? NAV.filter((n) => n.path === "/admin/juridico") : role === "admin" ? NAV : [{ path: "/professor", label: "Meu painel", icon: ChartNoAxesColumn, exact: true }];
+  const nav: readonly { path: string; label: string; icon: typeof ChartNoAxesColumn; exact?: boolean }[] = role === "admin" ? allowed : [{ path: "/professor", label: "Meu painel", icon: ChartNoAxesColumn, exact: true }];
 
   return (
     <AdminCtx.Provider value={{ demo, setDemo, range, setRange, toast, q }}>
@@ -87,7 +101,7 @@ export default function Shell({ children, role }: { children: ReactNode; role: "
         <aside className="fixed inset-y-0 left-0 z-30 hidden w-[224px] flex-col justify-between border-r-[0.5px] border-line bg-bg px-4 py-6 lg:flex">
           <div>
             <Link href={href(role === "admin" ? "/admin" : "/professor")} className="block whitespace-nowrap px-2 [&_.wordmark]:!tracking-[0.2em]" aria-label="THE FULL SCULPT"><Wordmark size="sm" /></Link>
-            <p className="eyebrow mt-1 px-2 !text-[9px]">{isLegalOnly ? "Área do advogado" : role === "admin" ? "Gestão da plataforma" : "Painel do professor"}</p>
+            <p className="eyebrow mt-1 px-2 !text-[9px]">{isLegalOnly ? "Área do advogado" : role === "admin" ? (userRole === "admin" ? "Gestão da plataforma" : "Painel da equipe") : "Painel do professor"}</p>
             <nav aria-label="Principal" className="mt-8 flex flex-col gap-0.5">
               {nav.map((n) => {
                 const Icon = n.icon;

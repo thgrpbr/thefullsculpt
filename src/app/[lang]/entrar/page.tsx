@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LegalFooter } from "@/components/LegalBits";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ArrowLeft } from "lucide-react";
@@ -26,7 +27,7 @@ export default function Login() {
     try {
       const sv = await api<ServerState>("POST", "/auth/login", { email: email.trim(), password });
       applyServer(sv);
-      router.push(href(sv.profile.role === "admin" ? "/admin" : sv.profile.role === "legal" ? "/admin/juridico" : sv.profile.role === "teacher" ? "/professor" : "/app"));
+      router.push(href(["admin", "legal", "staff"].includes(sv.profile.role) ? "/admin" : sv.profile.role === "teacher" ? "/professor" : "/app"));
     } catch (err) {
       const code = err instanceof ApiError ? err.code : "generic";
       setError(t(`auth.errors.${["invalid_credentials", "rate_limited", "network", "not_installed"].includes(code) ? code : "generic"}`));
@@ -55,6 +56,7 @@ export default function Login() {
           {t("auth.noAccount")} <Link href={href("/onboarding")} className="text-fg underline underline-offset-4">{t("auth.create")}</Link>
         </p>
         <button type="button" onClick={() => { loadDemo(); router.push(href("/app")); }} className="mt-4 text-[12px] text-muted underline underline-offset-4">{t("gate.demo")}</button>
+        <LegalFooter compact />
       </main>
     </div>
   );

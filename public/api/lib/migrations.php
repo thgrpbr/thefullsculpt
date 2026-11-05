@@ -12,7 +12,7 @@ use PDO;
 
 final class Migrator
 {
-    public const LATEST = 4;
+    public const LATEST = 5;
     private static bool $done = false;
 
     public static function run(PDO $pdo, bool $force = false): void
@@ -91,6 +91,9 @@ final class Migrator
         if ($v === 4) {
             self::v4($pdo);
         }
+        if ($v === 5) {
+            self::v5($pdo);
+        }
     }
 
     /** v3: perfil do aluno (contato/endereço), meio de pagamento (só dados de exibição) e recuperação de senha. */
@@ -155,6 +158,28 @@ final class Migrator
         foreach ([['ix_lv_slug', 'legal_versions', 'slug, status'], ['ix_lc_slug', 'legal_comments', 'slug, resolved'], ['ix_wh_event', 'webhook_events', 'provider, event_id']] as [$n, $t, $c]) {
             self::exec($pdo, ($sqlite ? 'CREATE INDEX IF NOT EXISTS' : 'CREATE INDEX') . " $n ON $t ($c)");
         }
+    }
+
+    /** v5: permissões por usuário (equipe do painel) e trilha de auditoria das edições jurídicas (encadeada por hash). */
+    private static function v5(PDO $pdo): void
+    {
+        $sqlite = DB::driver($pdo) === 'sqlite';
+        $id = $sqlite ? 'INTEGER PRIMARY KEY AUTOINCREMENT' : 'BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY';
+        $u = $sqlite ? 'INTEGER' : 'BIGINT UNSIGNED';
+        $dt = $sqlite ? 'TEXT' : 'DATETIME';
+        $tail = $sqlite ? '' : ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
+        $text = $sqlite ? 'TEXT' : 'MEDIUMTEXT';
+        if (!self::hasColumn($pdo, 'users', 'permissions')) {
+            $pdo->exec('ALTER TABLE users ADD COLUMN permissions TEXT NULL');
+        }
+        if (!self::hasColumn($pdo, 'users', 'profile_label')) {
+            $pdo->exec('ALTER TABLE users ADD COLUMN profile_label VARCHAR(40) NULL');
+        }
+        self::exec($pdo, "CREATE TABLE IF NOT EXISTS legal_edits (
+            id $id, slug VARCHAR(40) NOT NULL, version_id $u NULL, version INT NOT NULL, user_id $u NULL, user_name VARCHAR(120) NOT NULL, user_role VARCHAR(10) NOT NULL,
+            action VARCHAR(20) NOT NULL, note VARCHAR(300) NULL, chars_added INT NOT NULL DEFAULT 0, chars_removed INT NOT NULL DEFAULT 0,
+            content_before $text NULL, content_after $text NULL, content_hash CHAR(64) NULL, prev_hash CHAR(64) NULL, entry_hash CHAR(64) NOT NULL, created_at $dt NOT NULL)$tail");
+        self::exec($pdo, ($sqlite ? 'CREATE INDEX IF NOT EXISTS' : 'CREATE INDEX') . ' ix_le_slug ON legal_edits (slug, id)');
     }
 
     private static function v2(PDO $pdo): void
@@ -267,6 +292,8 @@ final class Settings
             'from_email' => '', 'from_name' => 'THE FULL SCULPT', 'reply_to' => '', 'verify_tls' => true,
             'public_url' => 'https://thefullsculpt.com.br',
         ],
+        // identificação do controlador (LGPD art. 41/9º) — exibida no rodapé legal
+        'company' => ['legal_name' => '', 'trade_name' => 'THE FULL SCULPT', 'cnpj' => '', 'address' => '', 'support_email' => '', 'dpo_name' => '', 'dpo_email' => ''],
     ];
 
     /** @return array<string,mixed> */

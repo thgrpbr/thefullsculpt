@@ -103,7 +103,7 @@ final class Gateways
     }
 
     /** @param list<string> $headers @return array{0:int,1:string} */
-    private static function http(string $url, array $headers): array
+    public static function http(string $url, array $headers): array
     {
         $ctx = stream_context_create(['http' => ['method' => 'GET', 'header' => implode("\r\n", $headers), 'timeout' => 10, 'ignore_errors' => true]]);
         $body = @file_get_contents($url, false, $ctx);

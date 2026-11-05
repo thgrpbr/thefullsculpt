@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Markdown from "@/components/Markdown";
+import { LegalFooter } from "@/components/LegalBits";
 import { LangSwitch, Wordmark } from "@/components/ui";
 import { useI18n } from "@/i18n/provider";
 import { useApi } from "@/lib/admin";
@@ -61,6 +62,7 @@ function Legal() {
             </ul>
           </>
         )}
+        <div className="mt-16 border-t-[0.5px] border-line pt-8"><LegalFooter /></div>
       </main>
     </div>
   );

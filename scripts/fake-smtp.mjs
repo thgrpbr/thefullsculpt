@@ -76,6 +76,13 @@ http.createServer((req, res) => {
     const auth = String(req.headers.authorization ?? "");
     const decoded = auth.startsWith("Basic ") ? Buffer.from(auth.slice(6), "base64").toString() : auth;
     const key = decoded + String(req.headers["access_token"] ?? "");
+    // simulação de consultas do Mercado Pago: id = <aluno>*1000 + n
+    const mp = req.url.match(/\/gw\/(v1\/payments|preapproval)\/(\d+)/);
+    if (mp && key.includes("good")) {
+      res.setHeader("Content-Type", "application/json");
+      const ref = String(Math.floor(Number(mp[2]) / 1000));
+      return res.end(JSON.stringify(mp[1] === "preapproval" ? { status: "cancelled", external_reference: ref } : { status: "approved", transaction_amount: 79.9, external_reference: ref, payment_type_id: "credit_card" }));
+    }
     res.statusCode = key.includes("good") ? 200 : 401;
     res.setHeader("Content-Type", "application/json");
     return res.end(JSON.stringify({ ok: res.statusCode === 200 }));

@@ -177,6 +177,7 @@ const en: Dict = {
     consent: {
       terms: "I have read and accept the Terms of Use and the Privacy Policy.",
       health: "I authorise processing of my health data (assessment) to personalise my training, under Brazil's LGPD. I can withdraw at any time.",
+      adult: "I confirm I am 18 or older (minors only with a legal guardian).",
       marketing: "I'd like to receive news and tips by email.",
     },
     consentFoot: "Your data stays protected. You can export or delete it whenever you want.",
@@ -213,6 +214,18 @@ const en: Dict = {
     cta: "Subscribe to monthly plan", already: "You're already subscribed", secure: "Secure payment. Cancel anytime.",
     testNote: "Test environment: the button simulates the subscription. Real checkout (Stripe) will be connected in the next step.",
     mobile: "After subscribing, sign in on the iOS and Android apps with the same login.",
+  },
+  legalui: {
+    cookieTitle: "Cookies and storage",
+    cookieText: "We only use strictly necessary cookies and storage (login, language, preferences and security). No advertising tracking.",
+    cookieMore: "Cookie policy", cookieOk: "Got it",
+    rights: "Your rights (LGPD)", dpo: "Data protection officer (DPO)", contact: "Contact", cnpj: "Company ID (CNPJ)",
+    renew: "The subscription renews automatically every month until cancelled. You can cancel any time in your profile, with no penalty.",
+    withdraw: "Right of withdrawal: full refund within 7 days of first purchase (Brazilian Consumer Code, art. 49).",
+    accept: "I have read and agree to the Terms of Use, the Refund Policy and the automatic monthly renewal.",
+    terms: "Terms", refund: "Refunds", privacy: "Privacy",
+    healthNote: "Educational content: not a substitute for medical advice. Stop if you feel pain, dizziness or shortness of breath. If in doubt, see your doctor.",
+    needAccept: "Please confirm to continue.",
   },
   pricing: {
     name: "Monthly plan", per: "/month", p1: "All lessons across the 9 phases", p2: "3D body with biomechanics and muscles",

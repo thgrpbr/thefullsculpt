@@ -145,7 +145,8 @@ export default function Player({ lessonId, free }: { lessonId: string; free: boo
           ))}
         </ul>
         <p className="mt-3 text-[12px] text-muted">{t("player.rounds", { n: lesson.steps.length / 5 })} · {t("player.restLine", { s: lesson.restSec })}</p>
-        <button type="button" onClick={start} className="btn btn-ember mt-10 w-full max-w-xs">
+        <p className="mt-6 max-w-xs text-center text-[11px] leading-relaxed text-muted">{t("legalui.healthNote")}</p>
+        <button type="button" onClick={start} className="btn btn-ember mt-6 w-full max-w-xs">
           <Play size={16} aria-hidden="true" /> {t("player.start")}
         </button>
       </div>

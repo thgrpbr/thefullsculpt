@@ -177,6 +177,7 @@ const es: Dict = {
     consent: {
       terms: "He leído y acepto los Términos de Uso y la Política de Privacidad.",
       health: "Autorizo el tratamiento de mis datos de salud (anamnesis) para personalizar mi entrenamiento, conforme a la LGPD de Brasil. Puedo revocarlo cuando quiera.",
+      adult: "Declaro tener 18 años o más (menores solo con un tutor legal).",
       marketing: "Quiero recibir novedades y consejos por correo.",
     },
     consentFoot: "Tus datos están protegidos. Puedes exportarlos o eliminarlos cuando quieras.",
@@ -213,6 +214,18 @@ const es: Dict = {
     cta: "Suscribirse al plan mensual", already: "Ya eres suscriptor", secure: "Pago seguro. Cancela cuando quieras.",
     testNote: "Entorno de prueba: el botón simula la suscripción. El checkout real (Stripe) se conectará en la próxima etapa.",
     mobile: "Después de suscribirte, entra también por la app en iOS y Android con el mismo acceso.",
+  },
+  legalui: {
+    cookieTitle: "Cookies y almacenamiento",
+    cookieText: "Solo usamos cookies y almacenamiento estrictamente necesarios (inicio de sesión, idioma, preferencias y seguridad). Sin rastreo publicitario.",
+    cookieMore: "Política de cookies", cookieOk: "Entendido",
+    rights: "Tus derechos (LGPD)", dpo: "Encargado de datos (DPO)", contact: "Contacto", cnpj: "CNPJ",
+    renew: "La suscripción se renueva automáticamente cada mes hasta que la canceles. Puedes cancelar cuando quieras desde tu perfil, sin multa.",
+    withdraw: "Derecho de arrepentimiento: reembolso total dentro de 7 días de la primera contratación (Código del Consumidor de Brasil, art. 49).",
+    accept: "He leído y acepto los Términos de Uso, la Política de Reembolso y la renovación mensual automática.",
+    terms: "Términos", refund: "Reembolso", privacy: "Privacidad",
+    healthNote: "Contenido educativo: no sustituye una evaluación médica. Detente si sientes dolor, mareo o falta de aire. Ante la duda, consulta a tu médico.",
+    needAccept: "Confirma para continuar.",
   },
   pricing: {
     name: "Plan mensual", per: "/mes", p1: "Todas las clases de las 9 fases", p2: "Cuerpo 3D con biomecánica y músculos",

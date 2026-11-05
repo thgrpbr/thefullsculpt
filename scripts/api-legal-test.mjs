@@ -77,7 +77,7 @@ ok("lista pública só traz publicados", (await anon.call("GET", "/legal")).json
 const l1 = await admin.call("GET", "/admin/legal");
 ok("prontidão sobe e versão de consentimento muda", l1.json.summary.readiness > 0 && /^\d{4}-\d{2}-\d{2}\.privacyv1$/.test(l1.json.consent_version), JSON.stringify([l1.json.summary.readiness, l1.json.consent_version]));
 const emailC = `cons${Date.now()}@teste.local`;
-await new Client().call("POST", "/auth/register", { name: "Consent Teste", email: emailC, password: "uma-senha-bem-longa-123", consents: { terms: true, health: true } });
+await new Client().call("POST", "/auth/register", { name: "Consent Teste", email: emailC, password: "uma-senha-bem-longa-123", consents: { terms: true, health: true, adult: true } });
 if (DB) {
   const db = new DatabaseSync(DB);
   const v = db.prepare("SELECT DISTINCT c.version FROM consents c JOIN users u ON u.id = c.user_id WHERE u.email = ?").all(emailC).map((r) => r.version);
@@ -169,7 +169,47 @@ const pixEv = { id: "evt_test_2", type: "payment_intent.succeeded", data: { obje
 ok("pagamento Pix reconhecido", (await send(pixEv)).status === 200 && (await admin.call("GET", `/admin/payments?q=teste@thefullsculpt&method=pix`)).json.total === 1);
 ok("assinatura cancelada pelo provedor", (await send({ id: "evt_test_3", type: "customer.subscription.deleted", data: { object: { id: "sub_1", metadata: { user_id: String(stu.id) } } } })).status === 200 && (await student.call("GET", "/me")).json.sub === "free");
 ok("usuário inexistente não gera pagamento", (await send({ id: "evt_test_4", type: "invoice.paid", data: { object: { id: "in_x", amount_paid: 100, metadata: { user_id: "999999" } } } })).status === 200 && (await admin.call("GET", `/admin/payments?q=teste@thefullsculpt`)).json.total === before + 2);
-ok("provedor não verificado: recebido (202) e registrado", (await new Client().call("POST", "/webhooks/asaas", { event: "PAYMENT_RECEIVED" }, { csrf: false })).status === 202);
+ok("provedor sem credencial/assinatura => 400 e registrado", (await new Client().call("POST", "/webhooks/asaas", { event: "PAYMENT_RECEIVED" }, { csrf: false })).status === 400);
+
+console.log("Webhooks Asaas, Pagar.me e Mercado Pago");
+const mk = async (provider, fields, mode = "sandbox") => {
+  const r = await admin.call("POST", "/admin/gateways", { provider, mode, fields });
+  await admin.call("POST", `/admin/gateways/${r.json.id}/test`);
+  await admin.call("PUT", `/admin/gateways/${r.json.id}`, { enabled: true, mode, methods: ["card", "pix"] });
+  return r.json.id;
+};
+const payCount = async () => (await admin.call("GET", "/admin/payments?q=teste@thefullsculpt")).json.total;
+const subNow = async () => (await student.call("GET", "/me")).json.sub;
+const hook = (provider, body, headers = {}, query = "") => new Client().call("POST", `/webhooks/${provider}${query}`, undefined, { csrf: false, headers, rawBody: JSON.stringify(body) });
+
+// Asaas: token no cabeçalho
+await mk("asaas", { api_key: "$aact_good_key", webhook_token: "tok-asaas-123" });
+const asaasPaid = { id: "evt_asaas_1", event: "PAYMENT_RECEIVED", payment: { id: "pay_a1", value: 79.9, billingType: "PIX", externalReference: String(stu.id) } };
+let n0 = await payCount();
+ok("Asaas: token errado => 400", (await hook("asaas", asaasPaid, { "asaas-access-token": "errado" })).status === 400 && (await hook("asaas", asaasPaid)).status === 400);
+ok("Asaas: pagamento Pix recebido (R$ 79,90) ativa a assinatura", (await hook("asaas", asaasPaid, { "asaas-access-token": "tok-asaas-123" })).status === 200 && (await payCount()) === n0 + 1 && (await subNow()) === "active");
+ok("Asaas: evento repetido é idempotente", (await hook("asaas", asaasPaid, { "asaas-access-token": "tok-asaas-123" })).json?.duplicate === true && (await payCount()) === n0 + 1);
+ok("Asaas: assinatura removida volta para grátis", (await hook("asaas", { id: "evt_asaas_2", event: "SUBSCRIPTION_DELETED", subscription: { externalReference: String(stu.id) } }, { "asaas-access-token": "tok-asaas-123" })).status === 200 && (await subNow()) === "free");
+
+// Pagar.me: Basic user:senha
+await mk("pagarme", { secret_key: "sk_good_key", public_key: "pk_pub", webhook_secret: "hook:senha" });
+const basic = (v) => ({ Authorization: "Basic " + Buffer.from(v).toString("base64") });
+const pgPaid = { id: "hook_pg_1", type: "order.paid", data: { id: "or_1", amount: 7990, metadata: { user_id: String(stu.id) }, charges: [{ payment_method: "credit_card" }] } };
+n0 = await payCount();
+ok("Pagar.me: credencial errada => 400", (await hook("pagarme", pgPaid, basic("hook:outra"))).status === 400 && (await hook("pagarme", pgPaid)).status === 400);
+ok("Pagar.me: order.paid registra o pagamento", (await hook("pagarme", pgPaid, basic("hook:senha"))).status === 200 && (await payCount()) === n0 + 1 && (await subNow()) === "active");
+ok("Pagar.me: subscription.canceled", (await hook("pagarme", { id: "hook_pg_2", type: "subscription.canceled", data: { metadata: { user_id: String(stu.id) } } }, basic("hook:senha"))).status === 200 && (await subNow()) === "free");
+
+// Mercado Pago: assinatura x-signature + consulta do pagamento na API
+await mk("mercadopago", { access_token: "TEST-good-token", public_key: "TEST-pub", webhook_secret: "mp-secret" });
+const mpSig = (dataId, reqId, ts, secret = "mp-secret") => `ts=${ts},v1=${createHmac("sha256", secret).update(`id:${dataId};request-id:${reqId};ts:${ts};`).digest("hex")}`;
+const mpId = String(stu.id * 1000 + 1);
+const mpEv = { id: "mp_evt_1", type: "payment", action: "payment.created", data: { id: mpId } };
+n0 = await payCount();
+ok("Mercado Pago: assinatura inválida => 400", (await hook("mercadopago", mpEv, { "x-signature": mpSig(mpId, "req-1", "1700000000", "outro"), "x-request-id": "req-1" }, `?data.id=${mpId}`)).status === 400);
+ok("Mercado Pago: pagamento aprovado é consultado na API e registrado", (await hook("mercadopago", mpEv, { "x-signature": mpSig(mpId, "req-1", "1700000000"), "x-request-id": "req-1" }, `?data.id=${mpId}`)).status === 200 && (await payCount()) === n0 + 1 && (await subNow()) === "active");
+ok("Mercado Pago: assinatura (preapproval) cancelada", (await hook("mercadopago", { id: "mp_evt_2", type: "subscription_preapproval", data: { id: mpId } }, { "x-signature": mpSig(mpId, "req-2", "1700000001"), "x-request-id": "req-2" }, `?data.id=${mpId}`)).status === 200 && (await subNow()) === "free");
+ok("Mercado Pago: sem o segredo configurado nada é processado", (await hook("mercadopago", mpEv, { "x-request-id": "req-3" }, `?data.id=${mpId}`)).status === 400);
 ok("provedor desconhecido => 404 e GET => 404", (await new Client().call("POST", "/webhooks/paypal", {}, { csrf: false })).status === 404 && (await new Client().call("GET", "/webhooks/stripe")).status === 404);
 if (DB) {
   const db = new DatabaseSync(DB);

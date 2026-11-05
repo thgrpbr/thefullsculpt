@@ -5,6 +5,7 @@ import "../globals.css";
 import { hasLocale, localeMeta, locales } from "@/i18n/config";
 import { getDictionary } from "@/i18n/dictionaries";
 import { I18nProvider } from "@/i18n/provider";
+import { CookieNotice } from "@/components/LegalBits";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"], weight: ["300", "400", "500"] });
 const serif = Instrument_Serif({ variable: "--font-serif", subsets: ["latin"], weight: "400", style: ["normal", "italic"] });
@@ -45,6 +46,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
       <body className="min-h-dvh">
         <I18nProvider lang={lang} dict={dict}>
           {children}
+          <CookieNotice />
         </I18nProvider>
       </body>
     </html>

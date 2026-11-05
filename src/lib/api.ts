@@ -11,7 +11,7 @@ export class ApiError extends Error {
 }
 
 export interface ServerState {
-  profile: { name: string; email: string; role: string };
+  profile: { name: string; email: string; role: string; permissions?: string[]; profileLabel?: string | null };
   consents: { health: boolean; terms: boolean; marketing: boolean; at: string };
   answers: Answers | null;
   assignment: Assignment | null;

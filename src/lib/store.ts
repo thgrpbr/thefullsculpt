@@ -29,6 +29,7 @@ export type Mode = "anon" | "demo" | "user";
 interface State {
   mode: Mode;
   role: string | null;
+  perms: string[];
   profile: { name: string; email: string } | null;
   consents: Consents | null;
   answers: Answers;
@@ -102,6 +103,7 @@ const earned = (s: Snap) => BADGES.filter((b) => b.test(s)).map((b) => b.id as s
 const initial = {
   mode: "anon" as Mode,
   role: null as string | null,
+  perms: [] as string[],
   profile: null,
   consents: null,
   answers: emptyAnswers(),
@@ -167,6 +169,7 @@ export const useStore = create<State>()(
         set({
           mode: "user",
           role: sv.profile.role,
+          perms: sv.profile.permissions ?? [],
           isDemo: false,
           profile: { name: sv.profile.name, email: sv.profile.email },
           consents: sv.consents,

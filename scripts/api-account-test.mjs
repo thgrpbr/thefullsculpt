@@ -4,6 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 
 const BASE = process.env.BASE ?? "http://127.0.0.1:8081";
 const INBOX = process.env.INBOX ?? "http://127.0.0.1:2526";
+const SMTP_PORT = Number(process.env.SMTP_PORT ?? 2525);
 const DB = process.env.DB;
 const PW = "senha-de-teste-local-1";
 let pass = 0;
@@ -54,18 +55,18 @@ ok("não-admin => 403", (await student.call("GET", "/admin/smtp")).status === 40
 ok("porta inválida => 422", (await admin.call("PUT", "/admin/smtp", { host: "smtp.x.com", port: 99999, secure: "tls", from_email: "a@b.com" })).status === 422);
 ok("remetente inválido => 422", (await admin.call("PUT", "/admin/smtp", { host: "smtp.x.com", port: 587, secure: "tls", from_email: "x" })).status === 422);
 ok("habilitar sem servidor => 422", (await admin.call("PUT", "/admin/smtp", { enabled: true, host: "", port: 587, secure: "none", from_email: "" })).status === 422);
-const bad = await admin.call("POST", "/admin/smtp/test", { host: "127.0.0.1", port: 2525, secure: "none", user: "mailer", password: "errada", from_email: "noreply@thefullsculpt.com.br", to: "dest@exemplo.com" });
+const bad = await admin.call("POST", "/admin/smtp/test", { host: "127.0.0.1", port: SMTP_PORT, secure: "none", user: "mailer", password: "errada", from_email: "noreply@thefullsculpt.com.br", to: "dest@exemplo.com" });
 ok("teste com senha errada falha com mensagem clara", bad.json?.ok === false && /recusados/.test(bad.json?.error ?? ""), JSON.stringify(bad.json));
 ok("log do teste não vaza a senha", !JSON.stringify(bad.json).includes("errada") && !JSON.stringify(bad.json).includes("segredo-smtp-teste"));
 const closed = await admin.call("POST", "/admin/smtp/test", { host: "127.0.0.1", port: 9, secure: "none", from_email: "a@b.com", to: "d@e.com" });
 ok("porta fechada => erro de conexão", closed.json?.ok === false && /conectar/.test(closed.json?.error ?? ""));
 await clearInbox();
-const good = await admin.call("POST", "/admin/smtp/test", { host: "127.0.0.1", port: 2525, secure: "none", user: "mailer", password: "segredo-smtp-teste", from_email: "noreply@thefullsculpt.com.br", from_name: "THE FULL SCULPT", to: "dest@exemplo.com" });
+const good = await admin.call("POST", "/admin/smtp/test", { host: "127.0.0.1", port: SMTP_PORT, secure: "none", user: "mailer", password: "segredo-smtp-teste", from_email: "noreply@thefullsculpt.com.br", from_name: "THE FULL SCULPT", to: "dest@exemplo.com" });
 ok("teste com credenciais certas envia", good.json?.ok === true, JSON.stringify(good.json));
 let mails = await inbox();
 ok("mensagem chegou ao servidor com remetente/destinatário", mails.length === 1 && mails[0].to.includes("dest@exemplo.com") && mails[0].from.includes("noreply@thefullsculpt.com.br"));
 ok("corpo em HTML/UTF-8 legível", /funcionando/.test(decode(mails[0])) || mails[0].data.includes("multipart/alternative"));
-const save = await admin.call("PUT", "/admin/smtp", { enabled: true, host: "127.0.0.1", port: 2525, secure: "none", user: "mailer", password: "segredo-smtp-teste", from_email: "noreply@thefullsculpt.com.br", from_name: "THE FULL SCULPT", public_url: "https://thefullsculpt.com.br" });
+const save = await admin.call("PUT", "/admin/smtp", { enabled: true, host: "127.0.0.1", port: SMTP_PORT, secure: "none", user: "mailer", password: "segredo-smtp-teste", from_email: "noreply@thefullsculpt.com.br", from_name: "THE FULL SCULPT", public_url: "https://thefullsculpt.com.br" });
 ok("salva SMTP habilitado (senha não volta)", save.status === 200 && save.json.enabled === true && save.json.has_password === true && !JSON.stringify(save.json).includes("segredo"));
 if (DB) {
   const db = new DatabaseSync(DB);
@@ -73,8 +74,8 @@ if (DB) {
   ok("senha SMTP criptografada no banco", !raw.includes("segredo-smtp-teste") && JSON.parse(raw).pass_enc.length > 30);
 }
 ok("GET /admin/settings não expõe SMTP", !("smtp" in (await admin.call("GET", "/admin/settings")).json));
-ok("URL pública inválida => 422", (await admin.call("PUT", "/admin/smtp", { enabled: true, host: "127.0.0.1", port: 2525, secure: "none", from_email: "noreply@thefullsculpt.com.br", public_url: "http://evil" })).status === 422);
-const keep = await admin.call("PUT", "/admin/smtp", { enabled: true, host: "127.0.0.1", port: 2525, secure: "none", user: "mailer", from_email: "noreply@thefullsculpt.com.br" });
+ok("URL pública inválida => 422", (await admin.call("PUT", "/admin/smtp", { enabled: true, host: "127.0.0.1", port: SMTP_PORT, secure: "none", from_email: "noreply@thefullsculpt.com.br", public_url: "http://evil" })).status === 422);
+const keep = await admin.call("PUT", "/admin/smtp", { enabled: true, host: "127.0.0.1", port: SMTP_PORT, secure: "none", user: "mailer", from_email: "noreply@thefullsculpt.com.br" });
 ok("senha em branco mantém a salva", keep.json.has_password === true && (await admin.call("POST", "/admin/smtp/test", { to: "outro@exemplo.com" })).json?.ok === true);
 
 console.log("E-mails automáticos");

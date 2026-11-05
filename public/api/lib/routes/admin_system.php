@@ -85,6 +85,45 @@ if ($route === 'POST /admin/smtp/test') {
     Http::json(['ok' => $r['ok'], 'error' => $r['error'], 'log' => $r['log']]);
 }
 
+/* ---------------- Entregabilidade: SPF / DKIM / DMARC ---------------- */
+if ($route === 'GET /admin/smtp/dns') {
+    $from = (string) (Settings::all($pdo)['smtp']['from_email'] ?? '');
+    $domain = strtolower(substr((string) strrchr($from, '@'), 1));
+    if (!preg_match('/^[a-z0-9.-]+\.[a-z]{2,}$/', $domain)) {
+        Http::fail(422, 'smtp_incomplete');
+    }
+    $sel = array_values(array_filter(array_map('trim', explode(',', (string) ($_GET['selectors'] ?? 'hostingermail-a,hostingermail-b'))), static fn($x) => preg_match('/^[a-z0-9_-]{1,40}$/i', $x)));
+    $txt = static function (string $name): array {
+        $r = @dns_get_record($name, DNS_TXT);
+        return is_array($r) ? array_map(static fn($x) => (string) ($x['txt'] ?? ''), $r) : [];
+    };
+    $cname = static function (string $name): ?string {
+        $r = @dns_get_record($name, DNS_CNAME);
+        return is_array($r) && $r ? (string) ($r[0]['target'] ?? '') : null;
+    };
+    $spf = array_values(array_filter($txt($domain), static fn($t) => stripos($t, 'v=spf1') === 0));
+    $dmarc = array_values(array_filter($txt('_dmarc.' . $domain), static fn($t) => stripos($t, 'v=DMARC1') === 0));
+    $dkim = [];
+    foreach ($sel as $s1) {
+        $name = "$s1._domainkey.$domain";
+        $c = $cname($name);
+        $t = $c ? [] : array_filter($txt($name), static fn($x) => stripos($x, 'v=DKIM1') !== false || stripos($x, 'p=') !== false);
+        $dkim[] = ['selector' => $s1, 'name' => $name, 'found' => $c !== null || count($t) > 0, 'type' => $c !== null ? 'CNAME' : (count($t) ? 'TXT' : null), 'value' => $c ?? (count($t) ? substr((string) reset($t), 0, 80) . '…' : null)];
+    }
+    Http::json([
+        'domain' => $domain,
+        'spf' => ['found' => count($spf) > 0, 'value' => $spf[0] ?? null, 'multiple' => count($spf) > 1],
+        'dmarc' => ['found' => count($dmarc) > 0, 'value' => $dmarc[0] ?? null],
+        'dkim' => $dkim,
+        'suggest' => [
+            ['type' => 'TXT', 'name' => '@', 'value' => 'v=spf1 include:_spf.mail.hostinger.com ~all', 'note' => 'SPF (se seu SMTP é o da Hostinger). Só pode existir UM registro SPF por domínio: some os includes.'],
+            ['type' => 'CNAME', 'name' => 'hostingermail-a._domainkey', 'value' => 'hostingermail-a.dkim.mail.hostinger.com', 'note' => 'DKIM 1 — confirme o valor exato em hPanel > E-mails > Configurações DNS.'],
+            ['type' => 'CNAME', 'name' => 'hostingermail-b._domainkey', 'value' => 'hostingermail-b.dkim.mail.hostinger.com', 'note' => 'DKIM 2 — idem.'],
+            ['type' => 'TXT', 'name' => '_dmarc', 'value' => 'v=DMARC1; p=none; rua=mailto:' . ($from ?: 'dmarc@' . $domain), 'note' => 'DMARC em modo monitoramento; endureça (quarantine/reject) depois de validar.'],
+        ],
+    ]);
+}
+
 /* ---------------- Banco de dados ---------------- */
 $dbInfo = static function (PDO $pdo, array $cfg): array {
     $dsn = (string) $cfg['db']['dsn'];

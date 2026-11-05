@@ -101,5 +101,8 @@ export const ACTION_PT: Record<string, string> = {
   admin_import_default_method: "Admin: importou método padrão", admin_refund: "Admin: reembolso", admin_sub_cancel: "Admin: cancelou assinatura",
   admin_commissions_approve: "Admin: aprovou comissões", admin_payout: "Admin: repasse pago", admin_export: "Admin: exportou dados",
   admin_appointment_created: "Admin: consulta criada", admin_appointment_update: "Admin: consulta editada", admin_settings: "Admin: configurações",
-  admin_demo_seed: "Admin: gerou dados demo", admin_demo_purge: "Admin: apagou dados demo", teacher_appointment_update: "Professor: consulta",
+  admin_demo_seed: "Admin: gerou dados demo", admin_smtp_updated: "Admin: SMTP alterado", admin_smtp_test: "Admin: teste de SMTP", admin_database_changed: "Admin: credenciais do banco alteradas",
+  admin_gateway_created: "Admin: gateway conectado", admin_gateway_updated: "Admin: gateway editado", admin_gateway_test: "Admin: teste de gateway", admin_gateway_default: "Admin: gateway padrão", admin_gateway_deleted: "Admin: gateway removido",
+  legal_seed: "Jurídico: modelos criados", legal_draft_saved: "Jurídico: rascunho salvo", legal_submit: "Jurídico: enviado para revisão", legal_approve: "Jurídico: aprovado", legal_reopen: "Jurídico: devolvido", legal_publish: "Jurídico: publicado", legal_comment: "Jurídico: comentário", legal_export: "Jurídico: dossiê exportado", legal_user_invited: "Jurídico: advogado convidado",
+  password_changed: "Senha alterada", password_reset: "Senha redefinida", password_reset_requested: "Redefinição de senha solicitada", profile_updated: "Dados atualizados", payment_method_changed: "Meio de pagamento alterado", subscription_canceled_by_user: "Assinatura cancelada pelo aluno", session_revoked: "Sessão encerrada", admin_demo_purge: "Admin: apagou dados demo", teacher_appointment_update: "Professor: consulta",
 };

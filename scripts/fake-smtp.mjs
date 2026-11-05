@@ -71,6 +71,15 @@ net.createServer((sock) => {
 }).listen(smtpPort, "127.0.0.1");
 
 http.createServer((req, res) => {
+  if (req.url.startsWith("/gw")) {
+    // gateway de pagamento falso: credencial contendo "good" => 200, senão 401
+    const auth = String(req.headers.authorization ?? "");
+    const decoded = auth.startsWith("Basic ") ? Buffer.from(auth.slice(6), "base64").toString() : auth;
+    const key = decoded + String(req.headers["access_token"] ?? "");
+    res.statusCode = key.includes("good") ? 200 : 401;
+    res.setHeader("Content-Type", "application/json");
+    return res.end(JSON.stringify({ ok: res.statusCode === 200 }));
+  }
   if (req.url === "/clear") inbox.length = 0;
   res.setHeader("Content-Type", "application/json");
   res.end(JSON.stringify(inbox));

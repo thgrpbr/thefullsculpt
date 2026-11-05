@@ -776,6 +776,9 @@ if ($route === 'GET /admin/privacy') {
     ]);
 }
 
+if (str_starts_with($path, '/admin/gateways')) {
+    require __DIR__ . '/gateways.php';
+}
 if (str_starts_with($path, '/admin/smtp') || str_starts_with($path, '/admin/database')) {
     require __DIR__ . '/admin_system.php';
 }

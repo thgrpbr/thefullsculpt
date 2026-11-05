@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import {
-  CalendarClock, ChartNoAxesColumn, CreditCard, Dumbbell, LogOut, Settings, ShieldCheck, UsersRound, UserRoundCheck, ArrowUpRight,
+  CalendarClock, ChartNoAxesColumn, CreditCard, Dumbbell, Landmark, LogOut, Scale, Settings, ShieldCheck, UsersRound, UserRoundCheck, ArrowUpRight,
 } from "lucide-react";
 import { useI18n } from "@/i18n/provider";
 import { api, ApiError, type ServerState } from "@/lib/api";
@@ -18,8 +18,10 @@ const NAV = [
   { path: "/admin/professores", label: "Professores", icon: UserRoundCheck },
   { path: "/admin/metodo", label: "Método e exercícios", icon: Dumbbell },
   { path: "/admin/pagamentos", label: "Pagamentos", icon: CreditCard },
+  { path: "/admin/gateways", label: "Gateways", icon: Landmark },
   { path: "/admin/consultas", label: "Consultas", icon: CalendarClock },
   { path: "/admin/configuracoes", label: "Configurações", icon: Settings },
+  { path: "/admin/juridico", label: "Jurídico", icon: Scale },
   { path: "/admin/auditoria", label: "Auditoria e LGPD", icon: ShieldCheck },
 ] as const;
 
@@ -62,7 +64,9 @@ export default function Shell({ children, role }: { children: ReactNode; role: "
 
   if (!hydrated || !checked) return <div className="theme-light min-h-dvh" />;
 
-  if (userRole !== role) {
+  const isLegalOnly = role === "admin" && userRole === "legal";
+  const onLegal = pathname.includes("/admin/juridico");
+  if ((userRole !== role && !isLegalOnly) || (isLegalOnly && !onLegal)) {
     return (
       <div className="theme-light flex min-h-dvh flex-col items-center justify-center px-6 text-center">
         <Wordmark size="md" stacked />
@@ -70,12 +74,12 @@ export default function Shell({ children, role }: { children: ReactNode; role: "
         <p className="mt-3 max-w-sm text-[14px] text-muted">
           {userRole ? "Seu perfil não tem permissão para esta área." : "Entre com uma conta autorizada para continuar."}
         </p>
-        <Link href={href(userRole ? "/app" : "/entrar")} className="btn btn-primary mt-8">{userRole ? "Voltar ao app" : "Entrar"}</Link>
+        <Link href={href(isLegalOnly ? "/admin/juridico" : userRole ? "/app" : "/entrar")} className="btn btn-primary mt-8">{isLegalOnly ? "Ir para o Jurídico" : userRole ? "Voltar ao app" : "Entrar"}</Link>
       </div>
     );
   }
 
-  const nav = role === "admin" ? NAV : [{ path: "/professor", label: "Meu painel", icon: ChartNoAxesColumn, exact: true }];
+  const nav = isLegalOnly ? NAV.filter((n) => n.path === "/admin/juridico") : role === "admin" ? NAV : [{ path: "/professor", label: "Meu painel", icon: ChartNoAxesColumn, exact: true }];
 
   return (
     <AdminCtx.Provider value={{ demo, setDemo, range, setRange, toast, q }}>
@@ -83,7 +87,7 @@ export default function Shell({ children, role }: { children: ReactNode; role: "
         <aside className="fixed inset-y-0 left-0 z-30 hidden w-[224px] flex-col justify-between border-r-[0.5px] border-line bg-bg px-4 py-6 lg:flex">
           <div>
             <Link href={href(role === "admin" ? "/admin" : "/professor")} className="block whitespace-nowrap px-2 [&_.wordmark]:!tracking-[0.2em]" aria-label="THE FULL SCULPT"><Wordmark size="sm" /></Link>
-            <p className="eyebrow mt-1 px-2 !text-[9px]">{role === "admin" ? "Gestão da plataforma" : "Painel do professor"}</p>
+            <p className="eyebrow mt-1 px-2 !text-[9px]">{isLegalOnly ? "Área do advogado" : role === "admin" ? "Gestão da plataforma" : "Painel do professor"}</p>
             <nav aria-label="Principal" className="mt-8 flex flex-col gap-0.5">
               {nav.map((n) => {
                 const Icon = n.icon;
@@ -110,7 +114,7 @@ export default function Shell({ children, role }: { children: ReactNode; role: "
             ))}
           </nav>
           <span className="hidden text-[11px] text-muted lg:block">{new Intl.DateTimeFormat("pt-BR", { dateStyle: "full" }).format(new Date())}</span>
-          {role === "admin" && (
+          {role === "admin" && !isLegalOnly && (
             <div className="flex items-center gap-3">
               <span className="hidden text-[10px] uppercase tracking-[0.16em] text-muted sm:block">Dados</span>
               <Segmented<DemoMode>

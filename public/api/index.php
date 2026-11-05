@@ -7,6 +7,7 @@ require __DIR__ . '/lib/util.php';
 require __DIR__ . '/lib/analytics.php';
 require __DIR__ . '/lib/demo.php';
 require __DIR__ . '/lib/mail.php';
+require __DIR__ . '/lib/gateways.php';
 
 use TFS\Audit;
 use TFS\Auth;
@@ -28,7 +29,7 @@ set_exception_handler(static function (\Throwable $e): void {
     Http::fail(500, 'server_error');
 });
 
-const CONSENT_VERSION = '2026-11';
+
 
 $cfg = Config::load();
 if ($cfg === null) {
@@ -36,12 +37,14 @@ if ($cfg === null) {
 }
 $pdo = DB::pdo($cfg);
 Migrator::run($pdo);
-Http::guardWrite(is_array($cfg['allowed_origins'] ?? null) ? $cfg['allowed_origins'] : []);
-
+define('CONSENT_VERSION', (string) (\TFS\Settings::all($pdo)['consent_version'] ?? '2026-11'));
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $path = '/' . trim((string) preg_replace('#^/api#', '', $path), '/');
 $ip = Http::ip();
+if (!str_starts_with($path, '/webhooks/')) {
+    Http::guardWrite(is_array($cfg['allowed_origins'] ?? null) ? $cfg['allowed_origins'] : []);
+}
 
 /** @return array<string,mixed> */
 function requireUser(PDO $pdo, array $cfg): array
@@ -76,8 +79,24 @@ function str(mixed $v, int $min, int $max): string
     return $v;
 }
 
-if (str_starts_with($path, '/admin')) {
+if (str_starts_with($path, '/admin/legal')) {
+    require __DIR__ . '/lib/routes/legal.php';
+} elseif (str_starts_with($path, '/admin')) {
     require __DIR__ . '/lib/routes/admin.php';
+}
+if ($path === '/legal' || str_starts_with($path, '/legal/')) {
+    require __DIR__ . '/lib/routes/legal.php';
+}
+if (str_starts_with($path, '/webhooks/')) {
+    require __DIR__ . '/lib/routes/webhooks.php';
+}
+if ($method === 'GET' && $path === '/gateways/checkout-config') {
+    // Somente dados PÚBLICOS necessários para montar o checkout transparente (nunca segredos).
+    Http::json(['gateways' => array_map(static fn($g) => [
+        'id' => (int) $g['id'], 'provider' => $g['provider'], 'label' => $g['label'], 'mode' => $g['mode'], 'default' => (bool) $g['is_default'],
+        'methods' => array_values(array_filter(explode(',', (string) $g['methods']))), 'public_key' => $g['public_key'],
+        'checkout' => \TFS\Gateways::CATALOG[$g['provider']]['checkout'] ?? '',
+    ], \TFS\Gateways::active($pdo))]);
 }
 if (str_starts_with($path, '/me/')) {
     require __DIR__ . '/lib/routes/account.php';

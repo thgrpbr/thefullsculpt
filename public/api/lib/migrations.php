@@ -12,7 +12,7 @@ use PDO;
 
 final class Migrator
 {
-    public const LATEST = 3;
+    public const LATEST = 4;
     private static bool $done = false;
 
     public static function run(PDO $pdo, bool $force = false): void
@@ -88,6 +88,9 @@ final class Migrator
         if ($v === 3) {
             self::v3($pdo);
         }
+        if ($v === 4) {
+            self::v4($pdo);
+        }
     }
 
     /** v3: perfil do aluno (contato/endereço), meio de pagamento (só dados de exibição) e recuperação de senha. */
@@ -114,6 +117,44 @@ final class Migrator
             id $id, user_id $u NOT NULL, token_hash CHAR(64) NOT NULL UNIQUE, expires_at $dt NOT NULL, used_at $dt NULL, created_at $dt NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE)$tail");
         self::exec($pdo, ($sqlite ? 'CREATE INDEX IF NOT EXISTS' : 'CREATE INDEX') . ' ix_resets_user ON password_resets (user_id)');
+    }
+
+    /** v4: central jurídica (documentos versionados + comentários do advogado), gateways de pagamento e eventos de webhook. */
+    private static function v4(PDO $pdo): void
+    {
+        $sqlite = DB::driver($pdo) === 'sqlite';
+        $id = $sqlite ? 'INTEGER PRIMARY KEY AUTOINCREMENT' : 'BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY';
+        $u = $sqlite ? 'INTEGER' : 'BIGINT UNSIGNED';
+        $dt = $sqlite ? 'TEXT' : 'DATETIME';
+        $tail = $sqlite ? '' : ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
+        $text = $sqlite ? 'TEXT' : 'MEDIUMTEXT';
+        foreach ([
+            "CREATE TABLE IF NOT EXISTS legal_docs (
+                slug VARCHAR(40) NOT NULL PRIMARY KEY, category VARCHAR(20) NOT NULL, title VARCHAR(160) NOT NULL,
+                required TINYINT NOT NULL DEFAULT 1, sort INT NOT NULL DEFAULT 0, created_at $dt NOT NULL)$tail",
+            "CREATE TABLE IF NOT EXISTS legal_versions (
+                id $id, slug VARCHAR(40) NOT NULL, version INT NOT NULL, status VARCHAR(12) NOT NULL DEFAULT 'draft', content $text NOT NULL,
+                change_note VARCHAR(300) NULL, author_id $u NULL, created_at $dt NOT NULL, updated_at $dt NOT NULL, submitted_at $dt NULL,
+                approved_by $u NULL, approved_at $dt NULL, published_at $dt NULL, UNIQUE (slug, version),
+                FOREIGN KEY (slug) REFERENCES legal_docs(slug) ON DELETE CASCADE)$tail",
+            "CREATE TABLE IF NOT EXISTS legal_comments (
+                id $id, slug VARCHAR(40) NOT NULL, version_id $u NULL, author_id $u NULL, author_name VARCHAR(120) NOT NULL,
+                body VARCHAR(2000) NOT NULL, resolved TINYINT NOT NULL DEFAULT 0, created_at $dt NOT NULL,
+                FOREIGN KEY (slug) REFERENCES legal_docs(slug) ON DELETE CASCADE)$tail",
+            "CREATE TABLE IF NOT EXISTS payment_gateways (
+                id $id, provider VARCHAR(20) NOT NULL, label VARCHAR(80) NOT NULL, enabled TINYINT NOT NULL DEFAULT 0, is_default TINYINT NOT NULL DEFAULT 0,
+                priority INT NOT NULL DEFAULT 10, mode VARCHAR(8) NOT NULL DEFAULT 'sandbox', methods VARCHAR(60) NOT NULL DEFAULT 'card',
+                public_key VARCHAR(200) NULL, config_enc $text NOT NULL, last_test_at $dt NULL, last_test_ok TINYINT NULL, last_test_msg VARCHAR(200) NULL,
+                created_at $dt NOT NULL, updated_at $dt NOT NULL)$tail",
+            "CREATE TABLE IF NOT EXISTS webhook_events (
+                id $id, provider VARCHAR(20) NOT NULL, event_id VARCHAR(80) NULL, type VARCHAR(60) NULL, valid TINYINT NOT NULL DEFAULT 0,
+                processed TINYINT NOT NULL DEFAULT 0, error VARCHAR(200) NULL, payload $text NOT NULL, created_at $dt NOT NULL)$tail",
+        ] as $sql) {
+            self::exec($pdo, $sql);
+        }
+        foreach ([['ix_lv_slug', 'legal_versions', 'slug, status'], ['ix_lc_slug', 'legal_comments', 'slug, resolved'], ['ix_wh_event', 'webhook_events', 'provider, event_id']] as [$n, $t, $c]) {
+            self::exec($pdo, ($sqlite ? 'CREATE INDEX IF NOT EXISTS' : 'CREATE INDEX') . " $n ON $t ($c)");
+        }
     }
 
     private static function v2(PDO $pdo): void
@@ -220,6 +261,7 @@ final class Settings
         'availability' => ['weekdays' => [1, 2, 3, 4, 5], 'start' => '09:00', 'end' => '18:00', 'slot_min' => 40],
         'free_lessons' => 1,
         'consult_capacity' => 2,
+        'consent_version' => '2026-11',
         'smtp' => [
             'enabled' => false, 'host' => '', 'port' => 587, 'secure' => 'tls', 'user' => '', 'pass_enc' => '',
             'from_email' => '', 'from_name' => 'THE FULL SCULPT', 'reply_to' => '', 'verify_tls' => true,

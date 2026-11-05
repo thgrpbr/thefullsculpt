@@ -151,6 +151,9 @@ export default function Landing() {
 
       <footer className="border-t-[0.5px] border-line px-5 py-10 text-center text-[12px] text-muted">
         <Wordmark size="sm" />
+        <nav aria-label="Legal" className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-1">
+          {[["privacy", "Privacidade"], ["terms", "Termos de uso"], ["health", "Aviso de saúde"], ["cookies", "Cookies"], ["refund", "Reembolso"]].map(([slug, label]) => <Link key={slug} href={href(`/legal?doc=${slug}`)} className="hover:text-fg">{label}</Link>)}
+        </nav>
         <p className="mt-4">{t("landing.footer")}</p>
         <p className="mt-1">© {new Date().getFullYear()} THE FULL SCULPT</p>
       </footer>

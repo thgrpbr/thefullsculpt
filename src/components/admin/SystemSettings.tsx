@@ -11,6 +11,11 @@ interface Smtp {
   verify_tls: boolean; public_url: string; has_password: boolean; configured: boolean;
 }
 interface Result { ok: boolean; error: string | null; log: string[] }
+interface DnsCheck {
+  domain: string; spf: { found: boolean; value: string | null; multiple: boolean }; dmarc: { found: boolean; value: string | null };
+  dkim: { selector: string; name: string; found: boolean; type: string | null; value: string | null }[];
+  suggest: { type: string; name: string; value: string; note: string }[];
+}
 interface DbInfo {
   driver: string; host: string; database: string; user: string; version: string; latency_ms: number; schema: number; latest_schema: number;
   tables: { name: string; rows: number; kb: number | null }[]; total_kb: number; config_writable: boolean; config_file: string;
@@ -34,6 +39,16 @@ function SmtpForm({ s, adminEmail, onSaved, toast }: { s: Smtp; adminEmail: stri
   const [res, setRes] = useState<Result | null>(null);
   const [busy, setBusy] = useState<"" | "save" | "test">("");
   const [err, setErr] = useState("");
+  const [dns, setDns] = useState<DnsCheck | null>(null);
+  const [dnsBusy, setDnsBusy] = useState(false);
+  async function checkDns() {
+    setDnsBusy(true);
+    setErr("");
+    const r = await send<DnsCheck>("GET", "/admin/smtp/dns");
+    setDnsBusy(false);
+    if (r.ok) setDns(r.data);
+    else setErr(r.code === "smtp_incomplete" ? "Salve primeiro o e-mail do remetente para verificar o DNS do domínio." : (EXTRA[r.code] ?? ERRORS[r.code] ?? ERRORS.generic));
+  }
   const body = () => ({ enabled: f.enabled, host: f.host.trim(), port: Number(f.port), secure: f.secure, user: f.user.trim(), password: f.password, clear_password: f.clear, from_email: f.from_email.trim(), from_name: f.from_name.trim(), reply_to: f.reply_to.trim(), verify_tls: f.verify_tls, public_url: f.public_url.trim() });
 
   async function save() {
@@ -100,6 +115,37 @@ function SmtpForm({ s, adminEmail, onSaved, toast }: { s: Smtp; adminEmail: stri
           {res.log.length > 0 && <pre className="mt-3 max-h-40 overflow-auto font-mono text-[10px] leading-relaxed text-muted">{res.log.join("\n")}</pre>}
         </div>
       )}
+      <div className="mt-6 border-t-[0.5px] border-line pt-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-[13px] font-medium">Entregabilidade: SPF, DKIM e DMARC</h3>
+            <p className="mt-0.5 max-w-2xl text-[11px] leading-relaxed text-muted">Esses registros precisam existir no <b className="font-medium text-fg">DNS do domínio</b> (no seu caso, o Cloudflare). Colar chaves aqui não basta: o painel só confere se estão publicados e mostra exatamente o que criar. Sem eles, os e-mails tendem a cair no spam.</p>
+          </div>
+          <Btn onClick={checkDns} disabled={dnsBusy}>{dnsBusy ? "Verificando…" : "Verificar DNS"}</Btn>
+        </div>
+        {dns && (
+          <div className="mt-4 space-y-4 text-[12px]">
+            <ul className="grid gap-2 sm:grid-cols-3">
+              <li className="rounded-xl bg-surface2 px-4 py-3"><p className="eyebrow !text-[9px]">SPF</p><p className={dns.spf.found ? "text-[#4f6a4b]" : "text-ember"}>{dns.spf.found ? "Encontrado" : "Não encontrado"}{dns.spf.multiple && " · vários registros (corrija: só pode haver um)"}</p>{dns.spf.value && <p className="mt-1 break-all font-mono text-[10px] text-muted">{dns.spf.value}</p>}</li>
+              <li className="rounded-xl bg-surface2 px-4 py-3"><p className="eyebrow !text-[9px]">DKIM</p>{dns.dkim.map((k) => <p key={k.selector} className={k.found ? "text-[#4f6a4b]" : "text-ember"}>{k.selector}: {k.found ? `ok (${k.type})` : "não encontrado"}</p>)}</li>
+              <li className="rounded-xl bg-surface2 px-4 py-3"><p className="eyebrow !text-[9px]">DMARC</p><p className={dns.dmarc.found ? "text-[#4f6a4b]" : "text-ember"}>{dns.dmarc.found ? "Encontrado" : "Não encontrado"}</p>{dns.dmarc.value && <p className="mt-1 break-all font-mono text-[10px] text-muted">{dns.dmarc.value}</p>}</li>
+            </ul>
+            <div>
+              <p className="eyebrow mb-2">Registros sugeridos para {dns.domain} (crie no Cloudflare)</p>
+              <ul className="space-y-2">
+                {dns.suggest.map((r) => (
+                  <li key={r.name + r.type} className="rounded-xl border-[0.5px] border-line p-3">
+                    <p className="flex flex-wrap items-center gap-2"><Badge tone="dark">{r.type}</Badge><span className="font-mono">{r.name}</span><button type="button" className="ml-auto text-[11px] text-bronze" onClick={() => { void navigator.clipboard?.writeText(r.value); toast("Valor copiado."); }}>copiar valor</button></p>
+                    <p className="mt-1.5 break-all font-mono text-[11px]">{r.value}</p>
+                    <p className="mt-1 text-[10px] text-muted">{r.note}</p>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-[10px] text-muted">No Cloudflare, registros de e-mail devem ficar como “somente DNS” (nuvem cinza). A propagação pode levar de minutos a algumas horas.</p>
+            </div>
+          </div>
+        )}
+      </div>
       <p className="mt-4 text-[11px] text-muted">Os testes usam os valores digitados, mesmo antes de salvar. A senha nunca é exibida nem aparece nos registros.</p>
     </Card>
   );

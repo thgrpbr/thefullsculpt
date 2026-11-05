@@ -22,6 +22,7 @@ if (PHP_SAPI === 'cli') {
         'cookie_secure' => false,
         'allow_test_subscription' => true,
         'allowed_origins' => ['http://localhost:3000', 'http://localhost:3001'],
+        'gateway_test_base' => getenv('TFS_GW_BASE') ?: 'http://127.0.0.1:2526/gw',
     ];
     file_put_contents($cfgPath, "<?php\nreturn " . var_export($cfg, true) . ";\n");
     putenv("TFS_CONFIG=$cfgPath");
@@ -30,7 +31,7 @@ if (PHP_SAPI === 'cli') {
     $pdo0 = TFS\DB::pdo($cfg);
     TFS\Seed::testUser($pdo0, $cfg, 'senha-de-teste-local-1');
     $now0 = TFS\DB::now();
-    foreach ([['admin@teste.local', 'Admin Teste', 'admin'], ['prof@teste.local', 'Prof Teste', 'teacher']] as [$em, $nm, $role]) {
+    foreach ([['admin@teste.local', 'Admin Teste', 'admin'], ['prof@teste.local', 'Prof Teste', 'teacher'], ['legal@teste.local', 'Advogada Teste', 'legal']] as [$em, $nm, $role]) {
         TFS\DB::run($pdo0, 'INSERT INTO users (email, password_hash, name, role, locale, created_at) VALUES (?, ?, ?, ?, ?, ?)', [$em, TFS\Auth::hash('senha-de-teste-local-1'), $nm, $role, 'pt', $now0]);
     }
     echo "ok\n";

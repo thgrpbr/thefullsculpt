@@ -8,7 +8,7 @@ export const PARQ = ["heart", "chestActive", "chestRest", "balance", "joints", "
 export const EQUIPMENT = ["none", "bands", "dumbbells", "gym"] as const;
 
 export interface Answers {
-  goal?: (typeof GOALS)[number];
+  goals: string[];
   experience?: (typeof EXPERIENCE)[number];
   days?: number;
   age?: number;
@@ -16,11 +16,12 @@ export interface Answers {
   weight?: number;
   injuries: string[];
   parq: Record<string, boolean>;
-  equipment?: (typeof EQUIPMENT)[number];
+  equipment: string[];
+  birth?: string;
   coaching: boolean;
 }
 
-export const emptyAnswers = (): Answers => ({ injuries: [], parq: {}, coaching: false });
+export const emptyAnswers = (): Answers => ({ goals: [], injuries: [], parq: {}, equipment: [], coaching: false });
 
 export interface Assignment {
   phase: number;

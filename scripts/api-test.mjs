@@ -65,6 +65,10 @@ const an = await a.call("PUT", "/anamnese", { answers: { goal: "sculpt", injurie
 ok("anamnese => 200 e fase 4", an.status === 200 && an.json?.assignment?.phase === 4 && an.json?.assignment?.level === "intermediate", JSON.stringify(an.json));
 ok("anamnese volta decifrada", an.json?.answers?.goal === "sculpt");
 ok("fase inválida => 422", (await a.call("PUT", "/anamnese", { answers: {}, assignment: { phase: 12 } })).status === 422);
+ok("menor de 18 (idade) => 422", (await a.call("PUT", "/anamnese", { answers: { age: 17 }, assignment: { phase: 1, medicalClearance: false, restrictions: [] } })).json?.error === "underage");
+const y17 = new Date(Date.now() - 17 * 365.25 * 86400000).toISOString().slice(0, 10);
+ok("menor de 18 (data de nascimento) ou data futura => 422", (await a.call("PUT", "/anamnese", { answers: { birth: y17 }, assignment: { phase: 1, medicalClearance: false, restrictions: [] } })).status === 422 && (await a.call("PUT", "/anamnese", { answers: { birth: "2999-01-01" }, assignment: { phase: 1, medicalClearance: false, restrictions: [] } })).status === 422);
+ok("maior de 18 com objetivos múltiplos é aceito", (await a.call("PUT", "/anamnese", { answers: { goals: ["sculpt", "lose"], equipment: ["bands", "dumbbells"], birth: "1990-05-10", age: 36, injuries: [], parq: {} }, assignment: { phase: 4, medicalClearance: false, restrictions: ["knee"] } })).status === 200);
 if (DB) {
   const db = new DatabaseSync(DB);
   const row = db.prepare("SELECT data_enc FROM anamneses WHERE user_id = (SELECT id FROM users WHERE email = ?)").get(email);
@@ -106,7 +110,7 @@ console.log("LGPD: exportar e excluir");
 const c = new Client();
 // o limite de login (por IP) pode estar ativo; a sessão `a` continua válida
 const ex = await a.call("GET", "/privacy/export");
-ok("export contém dados, consentimentos e atividade", ex.status === 200 && ex.json?.data?.answers?.goal === "sculpt" && ex.json?.consents?.length >= 3 && ex.json?.activity?.length > 0);
+ok("export contém dados, consentimentos e atividade", ex.status === 200 && ex.json?.data?.answers?.goals?.includes("sculpt") && ex.json?.consents?.length >= 3 && ex.json?.activity?.length > 0);
 ok("excluir com senha errada => 401", (await a.call("DELETE", "/privacy/account", { password: "errada-errada-123" })).status === 401);
 ok("excluir conta => 200", (await a.call("DELETE", "/privacy/account", { password })).status === 200);
 ok("sessão invalidada após exclusão", (await a.call("GET", "/me")).status === 401);

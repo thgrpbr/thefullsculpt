@@ -271,6 +271,17 @@ switch ("$method $path") {
         if (!is_array($answers) || !is_array($a)) {
             Http::fail(422, 'invalid_input');
         }
+        // menores de 18 anos não podem ter anamnese (LGPD art. 14): confere a idade informada e a data de nascimento
+        $birth = (string) ($answers['birth'] ?? '');
+        $ageGiven = is_numeric($answers['age'] ?? null) ? (int) $answers['age'] : null;
+        $ageBirth = null;
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $birth, $bm) && checkdate((int) $bm[2], (int) $bm[3], (int) $bm[1])) {
+            $diff = (new \DateTimeImmutable($birth))->diff(new \DateTimeImmutable('today'));
+            $ageBirth = $diff->invert ? 0 : (int) $diff->y;   // data futura conta como menor
+        }
+        if (($ageGiven !== null && $ageGiven < 18) || ($ageBirth !== null && $ageBirth < 18)) {
+            Http::fail(422, 'underage');
+        }
         $phase = $a['phase'] ?? null;
         if (!is_int($phase) || $phase < 1 || $phase > 9) {
             Http::fail(422, 'invalid_input');

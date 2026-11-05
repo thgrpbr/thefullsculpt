@@ -173,7 +173,7 @@ export const useStore = create<State>()(
           isDemo: false,
           profile: { name: sv.profile.name, email: sv.profile.email },
           consents: sv.consents,
-          answers: sv.answers ?? emptyAnswers(),
+          answers: { ...emptyAnswers(), ...(sv.answers ?? {}) },
           assignment: sv.assignment,
           sub: sv.sub,
           xp: sv.xp,
@@ -246,7 +246,7 @@ export const useStore = create<State>()(
         set({
           profile: { name: "Marina Duarte", email: "marina@exemplo.com" },
           consents: { health: true, terms: true, marketing: false, at: new Date().toISOString() },
-          answers: { ...emptyAnswers(), goal: "sculpt", experience: "y1to3", days: 4, coaching: true },
+          answers: { ...emptyAnswers(), goals: ["sculpt"], experience: "y1to3", days: 4, coaching: true },
           assignment: { phase: 4, level: "intermediate", intensity: "light", medicalClearance: false, restrictions: [] },
           sub: "active",
           xp: 1840,

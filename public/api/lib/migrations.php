@@ -12,7 +12,7 @@ use PDO;
 
 final class Migrator
 {
-    public const LATEST = 7;
+    public const LATEST = 8;
     private static bool $done = false;
 
     public static function run(PDO $pdo, bool $force = false): void
@@ -99,6 +99,9 @@ final class Migrator
         }
         if ($v === 7) {
             self::v7($pdo);
+        }
+        if ($v === 8) {
+            self::v8($pdo);
         }
     }
 
@@ -259,6 +262,21 @@ final class Migrator
                 ], JSON_UNESCAPED_UNICODE), $price, $now, $now,
             ]);
         }
+    }
+
+    /** v8: Estúdio 3D — rig/biomecânica por exercício, com histórico de versões. */
+    private static function v8(PDO $pdo): void
+    {
+        $sqlite = DB::driver($pdo) === 'sqlite';
+        $id = $sqlite ? 'INTEGER PRIMARY KEY AUTOINCREMENT' : 'BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY';
+        $u = $sqlite ? 'INTEGER' : 'BIGINT UNSIGNED';
+        $dt = $sqlite ? 'TEXT' : 'DATETIME';
+        $tail = $sqlite ? '' : ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
+        $text = $sqlite ? 'TEXT' : 'MEDIUMTEXT';
+        self::exec($pdo, "CREATE TABLE IF NOT EXISTS exercise_rigs (
+            id $id, slug VARCHAR(40) NOT NULL, version INT NOT NULL, def $text NOT NULL, note VARCHAR(200) NULL, author_id $u NULL,
+            created_at $dt NOT NULL, is_current TINYINT NOT NULL DEFAULT 0, UNIQUE (slug, version))$tail");
+        self::exec($pdo, ($sqlite ? 'CREATE INDEX IF NOT EXISTS' : 'CREATE INDEX') . ' ix_rigs_current ON exercise_rigs (slug, is_current)');
     }
 
     private static function v2(PDO $pdo): void

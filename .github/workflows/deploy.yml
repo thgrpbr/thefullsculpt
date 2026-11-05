@@ -73,3 +73,5 @@ jobs:
           BASE=http://127.0.0.1:8081 DB="$RUNNER_TEMP/test.sqlite" node scripts/api-perms-test.mjs
           php scripts/dev-api.php init "$TFS_CONFIG" "$RUNNER_TEMP/test.sqlite"
           BASE=http://127.0.0.1:8081 node scripts/api-pricing-test.mjs
+          php scripts/dev-api.php init "$TFS_CONFIG" "$RUNNER_TEMP/test.sqlite"
+          BASE=http://127.0.0.1:8081 node scripts/api-studio-test.mjs

@@ -28,7 +28,7 @@ export interface Pose {
   j: Record<JointName, V>;
   /** alvos da cinemática inversa (pé fixo no chão, mão guiada) */
   targets: { foot: V; hand: V };
-  metrics: { knee: number; hip: number; trunk: number };
+  metrics: { knee: number; hip: number; trunk: number; elbow: number; shoulder: number };
 }
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
@@ -67,8 +67,25 @@ const angleBetween = (a: V, b: V) => {
 
 const STAND_HIP: V = { x: -0.01, y: 0.965 };
 
-/** p: 0 (posição inicial) → 1 (ponto máximo do movimento). */
-export function computePose(type: MotionType, depth: number, p: number): Pose {
+/** Comprimentos dos segmentos editáveis no Estúdio. */
+export type Lengths = typeof LEN;
+
+/**
+ * Parâmetros que definem uma pose (o "rig" de controle): quadril, inclinação do tronco, da cabeça e alvo da mão.
+ * Pé fixo no chão; joelho e cotovelo saem da cinemática inversa. Coordenadas em metros, origem no chão sob o tornozelo.
+ */
+export interface Controls {
+  hip: V;
+  lean: number;
+  headLean: number;
+  hand: V;
+}
+
+const HEAD_LEN = 0.17;
+const toDeg = (r: number) => (r * 180) / Math.PI;
+
+/** Controles do movimento padrão de cada tipo. p: 0 (posição inicial) → 1 (ponto máximo). */
+export function controlsFor(type: MotionType, depth: number, p: number, L: Lengths = LEN): Controls {
   const e = p * depth;
   let hip: V = STAND_HIP;
   let lean = 0.08;
@@ -85,12 +102,7 @@ export function computePose(type: MotionType, depth: number, p: number): Pose {
     lean = 0.04;
   }
 
-  const knee = ik2(ANKLE, hip, LEN.shank, LEN.thigh, -1);
-  const neck: V = { x: hip.x + LEN.torso * Math.sin(lean), y: hip.y + LEN.torso * Math.cos(lean) };
-  const headLean = lean * 0.45;
-  const head: V = { x: neck.x + 0.17 * Math.sin(headLean), y: neck.y + 0.17 * Math.cos(headLean) };
-  const shoulder = neck;
-
+  const shoulder: V = { x: hip.x + L.torso * Math.sin(lean), y: hip.y + L.torso * Math.cos(lean) };
   let hand: V;
   if (type === "squat") {
     hand = { x: shoulder.x + 0.4, y: shoulder.y - 0.06 };
@@ -104,11 +116,21 @@ export function computePose(type: MotionType, depth: number, p: number): Pose {
     const phi = p * (Math.PI / 2) * 0.97;
     hand = { x: shoulder.x + 0.55 * Math.sin(phi), y: shoulder.y - 0.55 * Math.cos(phi) };
   }
+  return { hip, lean, headLean: lean * 0.45, hand };
+}
 
-  const elbow = ik2(shoulder, hand, LEN.uarm, LEN.farm, -1);
+/** Resolve a pose a partir dos controles (cinemática inversa para joelho e cotovelo). */
+export function poseFromControls(c: Controls, L: Lengths = LEN): Pose {
+  const { hip, lean, headLean, hand } = c;
+  const knee = ik2(ANKLE, hip, L.shank, L.thigh, -1);
+  const neck: V = { x: hip.x + L.torso * Math.sin(lean), y: hip.y + L.torso * Math.cos(lean) };
+  const head: V = { x: neck.x + HEAD_LEN * Math.sin(headLean), y: neck.y + HEAD_LEN * Math.cos(headLean) };
+  const shoulder = neck;
+
+  const elbow = ik2(shoulder, hand, L.uarm, L.farm, -1);
   // punho = ponto real alcançado (respeita limite do braço)
   const reach = Math.hypot(hand.x - shoulder.x, hand.y - shoulder.y);
-  const max = LEN.uarm + LEN.farm - 1e-4;
+  const max = L.uarm + L.farm - 1e-4;
   const wrist: V =
     reach > max
       ? { x: shoulder.x + ((hand.x - shoulder.x) * max) / reach, y: shoulder.y + ((hand.y - shoulder.y) * max) / reach }
@@ -116,12 +138,19 @@ export function computePose(type: MotionType, depth: number, p: number): Pose {
 
   const kneeFlex = 180 - angleBetween({ x: hip.x - knee.x, y: hip.y - knee.y }, { x: ANKLE.x - knee.x, y: ANKLE.y - knee.y });
   const hipFlex = 180 - angleBetween({ x: neck.x - hip.x, y: neck.y - hip.y }, { x: knee.x - hip.x, y: knee.y - hip.y });
+  const elbowFlex = 180 - angleBetween({ x: shoulder.x - elbow.x, y: shoulder.y - elbow.y }, { x: wrist.x - elbow.x, y: wrist.y - elbow.y });
+  const shoulderAng = angleBetween({ x: hip.x - shoulder.x, y: hip.y - shoulder.y }, { x: elbow.x - shoulder.x, y: elbow.y - shoulder.y });
 
   return {
     j: { head, neck, hip, knee, ankle: ANKLE, heel: HEEL, toe: TOE, shoulder, elbow, wrist },
     targets: { foot: ANKLE, hand },
-    metrics: { knee: Math.round(kneeFlex), hip: Math.round(hipFlex), trunk: Math.round((lean * 180) / Math.PI) },
+    metrics: { knee: Math.round(kneeFlex), hip: Math.round(hipFlex), trunk: Math.round(toDeg(lean)), elbow: Math.round(elbowFlex), shoulder: Math.round(shoulderAng) },
   };
+}
+
+/** p: 0 (posição inicial) → 1 (ponto máximo do movimento). */
+export function computePose(type: MotionType, depth: number, p: number): Pose {
+  return poseFromControls(controlsFor(type, depth, p));
 }
 
 /** Onda suave com pequena pausa nos extremos. */

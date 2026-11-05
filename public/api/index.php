@@ -95,6 +95,8 @@ if (str_starts_with($path, '/admin/legal')) {
     require __DIR__ . '/lib/routes/users.php';
 } elseif (str_starts_with($path, '/admin/emails')) {
     require __DIR__ . '/lib/routes/emails.php';
+} elseif (str_starts_with($path, '/admin/studio')) {
+    require __DIR__ . '/lib/routes/studio.php';
 } elseif (str_starts_with($path, '/admin/pricing')) {
     require __DIR__ . '/lib/routes/pricing.php';
 } elseif (str_starts_with($path, '/admin')) {
@@ -105,6 +107,14 @@ if ($path === '/legal' || str_starts_with($path, '/legal/')) {
 }
 if (str_starts_with($path, '/webhooks/')) {
     require __DIR__ . '/lib/routes/webhooks.php';
+}
+if ($method === 'GET' && $path === '/motions') {
+    // Movimentos 3D personalizados no Estúdio (o app usa no lugar do movimento padrão do exercício).
+    $out = [];
+    foreach (DB::all($pdo, 'SELECT slug, def FROM exercise_rigs WHERE is_current = 1') as $r) {
+        $out[$r['slug']] = json_decode((string) $r['def'], true);
+    }
+    Http::json(['rigs' => (object) $out]);
 }
 if ($method === 'GET' && $path === '/plans') {
     // Planos ativos com o preço já considerando promoções automáticas vigentes (alimenta a landing e a assinatura).

@@ -115,7 +115,7 @@ final class Perms
             '/admin/students/:id/anamnese' => 'students.health',
             '/admin/students' => $read ? 'students.view' : 'students.edit',
             '/admin/teachers' => $read ? 'teachers.view' : 'teachers.edit',
-            '/admin/exercises' => $read ? 'method.view' : 'method.edit', '/admin/lessons' => $read ? 'method.view' : 'method.edit', '/admin/method' => $read ? 'method.view' : 'method.edit',
+            '/admin/exercises' => $read ? 'method.view' : 'method.edit', '/admin/studio' => $read ? 'method.view' : 'method.edit', '/admin/lessons' => $read ? 'method.view' : 'method.edit', '/admin/method' => $read ? 'method.view' : 'method.edit',
             '/admin/payments' => $read ? 'payments.view' : 'payments.edit', '/admin/subscriptions' => $read ? 'payments.view' : 'payments.edit',
             '/admin/commissions' => $read ? 'commissions.view' : 'commissions.manage', '/admin/payouts' => $read ? 'commissions.view' : 'commissions.manage',
             '/admin/gateways' => 'gateways.manage',

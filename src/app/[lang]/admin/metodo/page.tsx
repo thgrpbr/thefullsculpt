@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
+import { useI18n } from "@/i18n/provider";
 import { ERRORS, FOCUS_PT, INTENSITY_PT, LEVEL_PT, MOTION_PT, MUSCLE_PT, send, useApi } from "@/lib/admin";
 import { Badge, Btn, Card, DataTable, Drawer, Field, inputCls, Modal, PageHead, Spinner, Tabs, useAdmin, type Col } from "@/components/admin/ui";
 
@@ -22,6 +24,7 @@ const split = (s: string) => s.split(",").filter(Boolean);
 
 export default function MethodPage() {
   const { toast } = useAdmin();
+  const { href } = useI18n();
   const method = useApi<Method>("/admin/method");
   const exs = useApi<{ rows: Ex[] }>("/admin/exercises");
   const [tab, setTab] = useState<"grade" | "exercicios">("grade");
@@ -56,7 +59,7 @@ export default function MethodPage() {
 
   const exCols: Col<Ex>[] = [
     { key: "n", head: "Exercício", cell: (e) => <div><p>{parse(e).pt.name}</p><p className="font-mono text-[10px] text-muted">{e.slug}</p></div> },
-    { key: "m", head: "Movimento 3D", cell: (e) => <span className="text-muted">{MOTION_PT[e.motion]} · {Math.round(e.depth * 100)}%</span> },
+    { key: "m", head: "Movimento 3D", cell: (e) => <div className="flex flex-col gap-1"><span className="text-muted">{MOTION_PT[e.motion]} · {Math.round(e.depth * 100)}%</span><Link href={href(`/admin/estudio?ex=${e.slug}`)} onClick={(ev) => ev.stopPropagation()} className="text-[11px] text-bronze underline underline-offset-4">Abrir no Estúdio 3D →</Link></div> },
     { key: "p", head: "Músculos principais", cell: (e) => <div className="flex flex-wrap gap-1">{split(e.primary_m).map((m) => <Badge key={m} tone="warn">{MUSCLE_PT[m]}</Badge>)}</div> },
     { key: "v", head: "Vídeo", cell: (e) => e.video_url ? <Badge tone="ok">cadastrado</Badge> : <Badge>pendente</Badge> },
     { key: "u", head: "Em aulas", align: "right", cell: (e) => e.used },
@@ -66,6 +69,7 @@ export default function MethodPage() {
   return (
     <div>
       <PageHead eyebrow="Conteúdo" title="Método e exercícios">
+        <Link href={href("/admin/estudio")} className="inline-flex h-10 items-center rounded-full border-[0.5px] border-line px-5 text-[13px] hover:bg-surface2">Estúdio 3D (rigs)</Link>
         <Btn onClick={importDefault} disabled={busy}>{busy ? "Importando…" : "Importar método padrão"}</Btn>
         <Btn variant="primary" size="md" onClick={() => setExOpen("new")}><Plus size={14} aria-hidden="true" />Novo exercício</Btn>
       </PageHead>

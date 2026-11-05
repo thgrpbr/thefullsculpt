@@ -4,6 +4,8 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { EXERCISES, type MuscleId, type MuscleRole } from "@/lib/exercises";
 import type { Pose } from "@/lib/pose";
+import type { MotionDef } from "@/lib/motion";
+import { useMotions } from "@/lib/motions";
 import { useI18n } from "@/i18n/provider";
 import { Segmented } from "./ui";
 import type { Layer, ViewPreset } from "./Anatomy3D";
@@ -23,6 +25,8 @@ export default function AnatomyPanel({
   defaultLayer = "muscle",
   className = "",
   showMetrics = true,
+  motionDef,
+  scrub,
 }: {
   exerciseId: string;
   playing: boolean;
@@ -31,9 +35,14 @@ export default function AnatomyPanel({
   defaultLayer?: Layer;
   className?: string;
   showMetrics?: boolean;
+  /** undefined = usa o rig salvo no Estúdio (se houver); null = força o movimento padrão */
+  motionDef?: MotionDef | null;
+  scrub?: number | null;
 }) {
   const { t } = useI18n();
   const ex = EXERCISES[exerciseId];
+  const saved = useMotions();
+  const def = motionDef !== undefined ? motionDef : (saved[exerciseId] ?? null);
   const [layer, setLayer] = useState<Layer>(defaultLayer);
   const [view, setView] = useState<ViewPreset>("angle");
   const [ik, setIk] = useState(false);
@@ -60,6 +69,8 @@ export default function AnatomyPanel({
           hoverMuscle={hover}
           onHover={setHover}
           onMetrics={showMetrics ? setMetrics : undefined}
+          motionDef={def}
+          scrub={scrub}
         />
       </div>
 

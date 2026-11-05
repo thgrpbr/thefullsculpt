@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useSyncExternalStore, type MutableRefObject
 import * as THREE from "three";
 import { EXERCISES, muscleRole, type MuscleId, type MuscleRole } from "@/lib/exercises";
 import { REP_SECONDS, computePose, wave, type JointName, type Pose } from "@/lib/pose";
+import { poseFromDef, type MotionDef } from "@/lib/motion";
 
 export type Layer = "skin" | "muscle" | "skeleton";
 export type ViewPreset = "side" | "front" | "angle";
@@ -21,6 +22,10 @@ interface Props {
   hoverMuscle: MuscleId | null;
   onHover: (m: MuscleId | null) => void;
   onMetrics?: (m: Pose["metrics"]) => void;
+  /** movimento personalizado (Estúdio); sem ele usa o padrão do exercício */
+  motionDef?: MotionDef | null;
+  /** posição fixa na repetição (0–1), usada pelo Estúdio ao arrastar a linha do tempo */
+  scrub?: number | null;
 }
 
 type Seg = "torso" | "thigh" | "shank" | "uarm" | "farm" | "neckseg" | "foot";
@@ -334,7 +339,7 @@ function IKMarkers({ poseRef }: { poseRef: PoseRef }) {
 /* ---------- Cena ---------- */
 
 function Figure(props: Props) {
-  const { exerciseId, playing, layer, showIK, hoverMuscle, onHover, onMetrics, speed = 1, resetKey } = props;
+  const { exerciseId, playing, layer, showIK, hoverMuscle, onHover, onMetrics, speed = 1, resetKey, motionDef, scrub } = props;
   const ex = EXERCISES[exerciseId];
   const poseRef = useRef<Pose>(computePose(ex.motion.type, ex.motion.depth, 0));
   const clock = useRef(0);
@@ -346,8 +351,9 @@ function Figure(props: Props) {
 
   useFrame((_, dt) => {
     if (playing) clock.current += Math.min(dt, 0.1) * speed;
-    const p = wave(clock.current / REP_SECONDS);
-    poseRef.current = computePose(ex.motion.type, ex.motion.depth, p);
+    const seconds = motionDef?.repSeconds ?? REP_SECONDS;
+    const p = scrub !== null && scrub !== undefined ? scrub : wave(clock.current / seconds);
+    poseRef.current = motionDef ? poseFromDef(motionDef, p) : computePose(ex.motion.type, ex.motion.depth, p);
     const now = performance.now();
     if (onMetrics && now - lastEmit.current > 140) {
       lastEmit.current = now;

@@ -17,7 +17,7 @@ const NAV = [
   { path: "/admin", label: "Visão geral", icon: ChartNoAxesColumn, exact: true, perm: ["overview.view"] },
   { path: "/admin/alunos", label: "Alunos", icon: UsersRound, perm: ["students.view"] },
   { path: "/admin/professores", label: "Professores", icon: UserRoundCheck, perm: ["teachers.view"] },
-  { path: "/admin/metodo", label: "Método e exercícios", icon: Dumbbell, perm: ["method.view"] },
+  { path: "/admin/metodo", label: "Método e exercícios", icon: Dumbbell, perm: ["method.view"], alias: ["/admin/estudio"] },
   { path: "/admin/pagamentos", label: "Pagamentos", icon: CreditCard, perm: ["payments.view", "commissions.view"] },
   { path: "/admin/planos", label: "Planos e preços", icon: Tags, perm: ["pricing.view"] },
   { path: "/admin/gateways", label: "Gateways", icon: Landmark, perm: ["gateways.manage"] },
@@ -73,7 +73,8 @@ export default function Shell({ children, role }: { children: ReactNode; role: "
     ? NAV.filter((n) => (n.perm === "master" ? userRole === "admin" : userRole === "admin" || n.perm.some((p) => perms.includes(p))))
     : [];
   const isLegalOnly = role === "admin" && userRole !== "admin" && allowed.length > 0 && allowed.every((n) => n.path === "/admin/juridico");
-  const here = allowed.find((n) => ("exact" in n && n.exact ? pathname === href(n.path) || pathname === href(n.path) + "/" : pathname.startsWith(href(n.path))));
+  const matches = (n: NavItem) => ("exact" in n && n.exact ? pathname === href(n.path) || pathname === href(n.path) + "/" : pathname.startsWith(href(n.path)) || ("alias" in n && n.alias.some((a) => pathname.startsWith(href(a)))));
+  const here = allowed.find(matches);
   const home = allowed[0];
 
   const redirect = hydrated && checked && role === "admin" && staffRole && !here && home ? href(home.path) : null;
@@ -107,7 +108,7 @@ export default function Shell({ children, role }: { children: ReactNode; role: "
             <nav aria-label="Principal" className="mt-8 flex flex-col gap-0.5">
               {nav.map((n) => {
                 const Icon = n.icon;
-                const active = "exact" in n && n.exact ? pathname === href(n.path) || pathname === href(n.path) + "/" : pathname.startsWith(href(n.path));
+                const active = role === "admin" ? here?.path === n.path : "exact" in n && n.exact ? pathname === href(n.path) || pathname === href(n.path) + "/" : pathname.startsWith(href(n.path));
                 return (
                   <Link key={n.path} href={href(n.path)} aria-current={active ? "page" : undefined} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors ${active ? "bg-surface text-fg shadow-[0_0_0_0.5px_var(--line)]" : "text-muted hover:text-fg"}`}>
                     <Icon size={16} strokeWidth={1.5} aria-hidden="true" />

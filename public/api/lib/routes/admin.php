@@ -674,6 +674,10 @@ if ($route === 'PUT /admin/settings') {
             Http::fail(422, 'invalid_price');
         }
         $out['price_cents'] = $b['price_cents'];
+        // legado: o preço agora vive em Planos e Preços; mantém o plano padrão em sincronia
+        if ($dp = \TFS\Pricing::defaultPlan($pdo)) {
+            DB::run($pdo, 'UPDATE plans SET price_cents = ?, updated_at = ? WHERE id = ?', [$b['price_cents'], DB::now(), $dp['id']]);
+        }
     }
     if (isset($b['commission_tiers'])) {
         $tiers = [];

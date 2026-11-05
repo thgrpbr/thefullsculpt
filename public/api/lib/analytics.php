@@ -62,7 +62,8 @@ final class Analytics
             $students[(int) $r['id']] = $r;
         }
         $logs = DB::all($pdo, "SELECT l.user_id, l.lesson_id, l.day, l.sec, l.rpe FROM lesson_logs l JOIN users u ON u.id = l.user_id WHERE u.role = 'student' $c");
-        $subs = DB::all($pdo, "SELECT s.user_id, s.status, s.price_cents, s.started_at, s.canceled_at FROM subscriptions s JOIN users u ON u.id = s.user_id WHERE 1=1 $c");
+        $subs = DB::all($pdo, "SELECT s.user_id, s.plan, s.status, s.price_cents, s.started_at, s.canceled_at FROM subscriptions s JOIN users u ON u.id = s.user_id WHERE 1=1 $c");
+        $iv = Pricing::intervals($pdo);   // MRR = valor do ciclo ÷ meses do plano
         $pays = DB::all($pdo, "SELECT p.user_id, p.amount_cents, p.status, p.paid_at FROM payments p JOIN users u ON u.id = p.user_id WHERE p.status IN ('paid','refunded') $c");
         $withAnam = [];
         foreach (DB::all($pdo, "SELECT a.user_id FROM anamneses a JOIN users u ON u.id = a.user_id WHERE 1=1 $c") as $r) {
@@ -117,7 +118,7 @@ final class Analytics
         foreach ($subs as $s) {
             if ($s['status'] === 'active') {
                 $activeUsers[$s['user_id']] = true;
-                $mrr += (int) $s['price_cents'];
+                $mrr += intdiv((int) $s['price_cents'], $iv[$s['plan'] ?? 'monthly'] ?? 1);
             }
             $st = self::day($s['started_at']);
             $ca = self::day($s['canceled_at']);
@@ -183,7 +184,7 @@ final class Analytics
                 $st = self::day($s['started_at']);
                 $ca = self::day($s['canceled_at']);
                 if ($st !== null && $st <= $end && ($ca === null || $ca > $end)) {
-                    $sum += (int) $s['price_cents'];
+                    $sum += intdiv((int) $s['price_cents'], $iv[$s['plan'] ?? 'monthly'] ?? 1);
                 }
             }
             $mrrM[$k] = $sum;
@@ -376,14 +377,15 @@ final class Analytics
                 $failed30++;
             }
         }
-        $subs = DB::all($pdo, "SELECT s.status, s.price_cents, s.started_at, s.canceled_at FROM subscriptions s JOIN users u ON u.id = s.user_id WHERE 1=1 $c");
+        $subs = DB::all($pdo, "SELECT s.status, s.plan, s.price_cents, s.started_at, s.canceled_at FROM subscriptions s JOIN users u ON u.id = s.user_id WHERE 1=1 $c");
+        $iv = Pricing::intervals($pdo);   // MRR = valor do ciclo ÷ meses do plano
         $active = $mrr = $activeAt30 = $cancel30 = 0;
         $statuses = ['active' => 0, 'canceled' => 0, 'past_due' => 0];
         foreach ($subs as $s) {
             $statuses[$s['status']] = ($statuses[$s['status']] ?? 0) + 1;
             if ($s['status'] === 'active') {
                 $active++;
-                $mrr += (int) $s['price_cents'];
+                $mrr += intdiv((int) $s['price_cents'], $iv[$s['plan'] ?? 'monthly'] ?? 1);
             }
             $st = self::day($s['started_at']);
             $ca = self::day($s['canceled_at']);

@@ -100,7 +100,7 @@ if ($route === 'GET /me/payments') {
     $next = ($sub && $sub['status'] === 'active' && $lastPaid) ? gmdate('Y-m-d', strtotime($lastPaid . ' UTC') + 30 * 86400) : null;
     Http::json([
         'subscription' => $sub ? $sub + ['next_charge' => $next] : null,
-        'price_cents' => (int) Settings::all($pdo)['price_cents'],
+        'price_cents' => (int) (\TFS\Pricing::defaultPlan($pdo)['price_cents'] ?? Settings::all($pdo)['price_cents']),
         'method' => ['type' => $u['pay_method'] ?: 'card', 'brand' => $u['pay_brand'], 'last4' => $u['pay_last4']],
         'payments' => $pays,
         'total_paid_cents' => array_sum(array_map(static fn($p) => $p['status'] === 'paid' ? (int) $p['amount_cents'] : 0, $pays)),

@@ -218,9 +218,9 @@ const pt = {
     cookieText: "Usamos só cookies essenciais, sem publicidade.",
     cookieMore: "Saiba mais", cookieOk: "Entendi",
     rights: "Seus direitos (LGPD)", dpo: "Encarregado de dados (DPO)", contact: "Contato", cnpj: "CNPJ",
-    renew: "A assinatura renova automaticamente todo mês até ser cancelada. Você cancela quando quiser, no seu perfil, sem multa.",
+    renew: "A assinatura renova automaticamente ao fim de cada período contratado até ser cancelada. Você cancela quando quiser, no seu perfil, sem multa.",
     withdraw: "Direito de arrependimento: reembolso integral em até 7 dias após a primeira contratação (CDC, art. 49).",
-    accept: "Li e concordo com os Termos de Uso, a Política de Reembolso e a renovação automática mensal.",
+    accept: "Li e concordo com os Termos de Uso, a Política de Reembolso e a renovação automática.",
     terms: "Termos", refund: "Reembolso", privacy: "Privacidade",
     healthNote: "Conteúdo educativo: não substitui avaliação médica. Pare se sentir dor, tontura ou falta de ar. Em caso de dúvida, consulte seu médico.",
     needAccept: "Confirme o aceite para continuar.",
@@ -262,7 +262,16 @@ const pt = {
     sent: "Enviamos um novo link. Confira a caixa de entrada e o spam.", sendError: "Não foi possível reenviar agora. Tente em alguns minutos.",
     needForPay: "Confirme seu e-mail (link enviado no cadastro) para poder assinar.",
   },
+  plans: {
+    choose: "Escolha seu pacote", codePlaceholder: "Código promocional", apply: "Aplicar", codeApplied: "Código {code} aplicado.",
+    err: {
+      generic: "Não foi possível validar o código agora.", code_invalid: "Código inválido.", code_expired: "Este código está fora da validade.", code_exhausted: "Este código esgotou.",
+      code_not_for_plan: "Este código não vale para este pacote.", code_first_purchase: "Este código vale só na primeira compra.", code_already_used: "Você já usou este código.",
+      promo_better: "A promoção em andamento já tem desconto maior; ela foi mantida.",
+    },
+  },
   pricing: {
+    interval: { month: "/mês", quarter: "/trimestre", semester: "/semestre", year: "/ano" },
     name: "Plano mensal", per: "/mês", p1: "Todas as aulas das 9 fases", p2: "Corpo 3D com biomecânica e músculos",
     p3: "Progresso, conquistas e desafios", p4: "Cancele quando quiser",
   },
@@ -287,7 +296,7 @@ const pt = {
     teachersText: "Professores cadastram alunos pelo seu link, acompanham constância e progresso, criam desafios e recebem comissão recorrente enquanto o aluno estiver ativo.",
     teachersCta: "Quero ser professor Sculpt",
     teachers: { t1: "Link próprio para indicar alunos", t2: "Painel com ritmo e progresso da turma", t3: "Comissão recorrente por aluno ativo" },
-    pricingTitle: "Um plano. Tudo liberado.", footer: "Seus dados de saúde são tratados conforme a LGPD.",
+    pricingTitle: "Preço simples. Tudo liberado.", footer: "Seus dados de saúde são tratados conforme a LGPD.",
   },
 };
 

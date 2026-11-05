@@ -220,9 +220,9 @@ const en: Dict = {
     cookieText: "Essential cookies only, no advertising.",
     cookieMore: "Learn more", cookieOk: "Got it",
     rights: "Your rights (LGPD)", dpo: "Data protection officer (DPO)", contact: "Contact", cnpj: "Company ID (CNPJ)",
-    renew: "The subscription renews automatically every month until cancelled. You can cancel any time in your profile, with no penalty.",
+    renew: "The subscription renews automatically at the end of each billing period until cancelled. You can cancel any time in your profile, with no penalty.",
     withdraw: "Right of withdrawal: full refund within 7 days of first purchase (Brazilian Consumer Code, art. 49).",
-    accept: "I have read and agree to the Terms of Use, the Refund Policy and the automatic monthly renewal.",
+    accept: "I have read and agree to the Terms of Use, the Refund Policy and the automatic renewal.",
     terms: "Terms", refund: "Refunds", privacy: "Privacy",
     healthNote: "Educational content: not a substitute for medical advice. Stop if you feel pain, dizziness or shortness of breath. If in doubt, see your doctor.",
     needAccept: "Please confirm to continue.",
@@ -264,7 +264,16 @@ const en: Dict = {
     sent: "We sent a new link. Check your inbox and spam.", sendError: "Couldn't resend right now. Try again in a few minutes.",
     needForPay: "Confirm your email (link sent at sign-up) to subscribe.",
   },
+  plans: {
+    choose: "Choose your plan", codePlaceholder: "Promo code", apply: "Apply", codeApplied: "Code {code} applied.",
+    err: {
+      generic: "Couldn't validate the code right now.", code_invalid: "Invalid code.", code_expired: "This code is outside its validity period.", code_exhausted: "This code has run out.",
+      code_not_for_plan: "This code doesn't apply to this plan.", code_first_purchase: "This code is valid only on a first purchase.", code_already_used: "You've already used this code.",
+      promo_better: "The current promotion already gives a bigger discount; it was kept.",
+    },
+  },
   pricing: {
+    interval: { month: "/month", quarter: "/quarter", semester: "/6 months", year: "/year" },
     name: "Monthly plan", per: "/month", p1: "All lessons across the 9 phases", p2: "3D body with biomechanics and muscles",
     p3: "Progress, achievements and challenges", p4: "Cancel anytime",
   },
@@ -289,7 +298,7 @@ const en: Dict = {
     teachersText: "Coaches enrol students through their link, follow consistency and progress, create challenges and earn recurring commission while the student stays active.",
     teachersCta: "I want to be a Sculpt coach",
     teachers: { t1: "Your own link to refer students", t2: "Dashboard with your group's pace and progress", t3: "Recurring commission per active student" },
-    pricingTitle: "One plan. Everything unlocked.", footer: "Your health data is processed in line with Brazil's LGPD.",
+    pricingTitle: "Simple pricing. Everything unlocked.", footer: "Your health data is processed in line with Brazil's LGPD.",
   },
 };
 

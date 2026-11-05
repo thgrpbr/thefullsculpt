@@ -1,13 +1,13 @@
 "use client";
 
 import { LegalFooter } from "@/components/LegalBits";
+import { PlanCards } from "@/components/PlanCards";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Activity, Box, Check, Gauge, Trophy, UsersRound, Video } from "lucide-react";
 import AnatomyPanel from "./AnatomyPanel";
 import { LangSwitch, Wordmark } from "./ui";
 import { useI18n } from "@/i18n/provider";
-import { formatBrl, PLAN } from "@/lib/config";
 import { INTENSITIES, LEVELS } from "@/lib/phases";
 
 const FEATURES = [
@@ -22,7 +22,7 @@ const FEATURES = [
 const DEMO_EXERCISES = ["squat", "hinge", "press"] as const;
 
 export default function Landing() {
-  const { t, href, lang } = useI18n();
+  const { t, href } = useI18n();
   const [ex, setEx] = useState<(typeof DEMO_EXERCISES)[number]>("squat");
 
   useEffect(() => {
@@ -135,18 +135,9 @@ export default function Landing() {
         </section>
 
         {/* Preço */}
-        <section className="mx-auto max-w-lg px-5 py-24 text-center">
+        <section className="mx-auto max-w-5xl px-5 py-24 text-center">
           <h2 className="font-display text-4xl md:text-6xl">{t("landing.pricingTitle")}</h2>
-          <div className="card mt-10 p-8 text-left">
-            <p className="eyebrow">{t("pricing.name")}</p>
-            <p className="font-display mt-3 text-6xl">{formatBrl(PLAN.priceBrl, lang)}<span className="text-xl text-muted"> {t("pricing.per")}</span></p>
-            <ul className="mt-6 flex flex-col gap-3 text-[15px]">
-              {["p1", "p2", "p3", "p4"].map((k) => (
-                <li key={k} className="flex items-start gap-3"><Check size={17} className="mt-0.5 shrink-0 text-bronze" aria-hidden="true" />{t(`pricing.${k}`)}</li>
-              ))}
-            </ul>
-            <Link href={href("/onboarding")} className="btn btn-primary mt-8 w-full">{t("landing.cta")}</Link>
-          </div>
+          <PlanCards />
         </section>
       </main>
 

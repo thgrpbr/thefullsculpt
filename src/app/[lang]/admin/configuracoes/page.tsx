@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
+import { useI18n } from "@/i18n/provider";
 import { ERRORS, num, send, useApi } from "@/lib/admin";
 import { Badge, Btn, Card, Field, inputCls, KV, PageHead, Spinner, useAdmin } from "@/components/admin/ui";
 import { DatabaseCard, SmtpCard } from "@/components/admin/SystemSettings";
@@ -27,7 +29,7 @@ export default function ConfigPage() {
     <div>
       <PageHead eyebrow="Plataforma" title="Configurações" />
       <div className="grid gap-4 lg:grid-cols-2">
-        <Plan s={data} onSaved={reload} />
+        <Plan />
         <Commissions s={data} onSaved={reload} />
         <Consults s={data} onSaved={reload} />
         <DemoData sys={sys.data} onChanged={sys.reload} />
@@ -67,18 +69,12 @@ function useSave(onSaved: () => void) {
   };
 }
 
-function Plan({ s, onSaved }: { s: Settings; onSaved: () => void }) {
-  const [price, setPrice] = useState((s.price_cents / 100).toFixed(2).replace(".", ","));
-  const { err, save } = useSave(onSaved);
-  const cents = Math.round(Number(price.replace(/\./g, "").replace(",", ".")) * 100);
+function Plan() {
+  const { href } = useI18n();
   return (
-    <Card title="Plano e preço" sub="Valor cobrado de novas assinaturas (as já existentes mantêm o preço contratado)">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Mensalidade (R$)"><input className={inputCls} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} /></Field>
-        <Field label="Aula grátis" hint="A primeira aula da fase do perfil é grátis (regra fixa do app)."><input className={inputCls} value="1 aula" disabled readOnly /></Field>
-      </div>
-      {err && <p role="alert" className="mt-3 text-[12px] text-ember">{err}</p>}
-      <div className="mt-4"><Btn variant="primary" onClick={() => save({ price_cents: cents })}>Salvar plano</Btn></div>
+    <Card title="Plano e preço" sub="Pacotes, preços, promoções, códigos e regras de desconto agora ficam em um só lugar">
+      <p className="text-[13px] text-muted">Crie, renomeie ou remova pacotes (o site é atualizado na hora), defina descontos, códigos promocionais e consulte o calendário de feriados e datas comerciais.</p>
+      <div className="mt-4"><Link href={href("/admin/planos")} className="inline-flex h-10 items-center rounded-full bg-fg px-5 text-[13px] text-bg">Abrir Planos e Preços</Link></div>
     </Card>
   );
 }

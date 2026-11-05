@@ -12,7 +12,7 @@ use PDO;
 
 final class Migrator
 {
-    public const LATEST = 6;
+    public const LATEST = 7;
     private static bool $done = false;
 
     public static function run(PDO $pdo, bool $force = false): void
@@ -96,6 +96,9 @@ final class Migrator
         }
         if ($v === 6) {
             self::v6($pdo);
+        }
+        if ($v === 7) {
+            self::v7($pdo);
         }
     }
 
@@ -205,6 +208,57 @@ final class Migrator
         self::exec($pdo, "CREATE TABLE IF NOT EXISTS email_templates (
             kind VARCHAR(20) NOT NULL, lang VARCHAR(2) NOT NULL, subject VARCHAR(200) NOT NULL, title VARCHAR(200) NOT NULL, body $text NOT NULL,
             cta VARCHAR(80) NOT NULL, foot VARCHAR(400) NOT NULL, updated_by $u NULL, updated_at $dt NOT NULL, PRIMARY KEY (kind, lang))$tail");
+    }
+
+    /** v7: planos e preços, promoções, códigos promocionais e calendário festivo. */
+    private static function v7(PDO $pdo): void
+    {
+        $sqlite = DB::driver($pdo) === 'sqlite';
+        $id = $sqlite ? 'INTEGER PRIMARY KEY AUTOINCREMENT' : 'BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY';
+        $u = $sqlite ? 'INTEGER' : 'BIGINT UNSIGNED';
+        $dt = $sqlite ? 'TEXT' : 'DATETIME';
+        $d = $sqlite ? 'TEXT' : 'DATE';
+        $tail = $sqlite ? '' : ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
+        $text = $sqlite ? 'TEXT' : 'MEDIUMTEXT';
+        foreach ([
+            "CREATE TABLE IF NOT EXISTS plans (
+                id $id, slug VARCHAR(40) NOT NULL UNIQUE, name_pt VARCHAR(80) NOT NULL, name_en VARCHAR(80) NOT NULL DEFAULT '', name_es VARCHAR(80) NOT NULL DEFAULT '',
+                desc_pt VARCHAR(240) NOT NULL DEFAULT '', desc_en VARCHAR(240) NOT NULL DEFAULT '', desc_es VARCHAR(240) NOT NULL DEFAULT '', features $text NULL,
+                interval_months INT NOT NULL DEFAULT 1, price_cents INT NOT NULL, active TINYINT NOT NULL DEFAULT 1, featured TINYINT NOT NULL DEFAULT 0,
+                sort INT NOT NULL DEFAULT 0, created_at $dt NOT NULL, updated_at $dt NOT NULL)$tail",
+            "CREATE TABLE IF NOT EXISTS promotions (
+                id $id, name VARCHAR(80) NOT NULL, label VARCHAR(30) NULL, kind VARCHAR(8) NOT NULL, value INT NOT NULL, plan_ids VARCHAR(200) NULL,
+                starts_on $d NULL, ends_on $d NULL, first_purchase_only TINYINT NOT NULL DEFAULT 0, active TINYINT NOT NULL DEFAULT 1, event_key VARCHAR(60) NULL,
+                created_at $dt NOT NULL, updated_at $dt NOT NULL)$tail",
+            "CREATE TABLE IF NOT EXISTS promo_codes (
+                id $id, code VARCHAR(24) NOT NULL UNIQUE, note VARCHAR(120) NULL, kind VARCHAR(8) NOT NULL, value INT NOT NULL, plan_ids VARCHAR(200) NULL,
+                starts_on $d NULL, ends_on $d NULL, max_uses INT NULL, uses INT NOT NULL DEFAULT 0, first_purchase_only TINYINT NOT NULL DEFAULT 0,
+                stackable TINYINT NOT NULL DEFAULT 0, active TINYINT NOT NULL DEFAULT 1, created_at $dt NOT NULL, updated_at $dt NOT NULL)$tail",
+            "CREATE TABLE IF NOT EXISTS promo_redemptions (
+                id $id, code_id $u NOT NULL, user_id $u NOT NULL, plan_id $u NOT NULL, discount_cents INT NOT NULL, created_at $dt NOT NULL,
+                FOREIGN KEY (code_id) REFERENCES promo_codes(id) ON DELETE CASCADE)$tail",
+            "CREATE TABLE IF NOT EXISTS calendar_events (
+                id $id, date $d NOT NULL, name VARCHAR(100) NOT NULL, kind VARCHAR(12) NOT NULL DEFAULT 'custom', yearly TINYINT NOT NULL DEFAULT 0,
+                active TINYINT NOT NULL DEFAULT 1, created_at $dt NOT NULL)$tail",
+        ] as $sql) {
+            self::exec($pdo, $sql);
+        }
+        self::exec($pdo, ($sqlite ? 'CREATE UNIQUE INDEX IF NOT EXISTS' : 'CREATE UNIQUE INDEX') . ' ux_redeem_user_code ON promo_redemptions (code_id, user_id)');
+        // plano inicial a partir do preço já configurado
+        if (!DB::one($pdo, 'SELECT id FROM plans')) {
+            $now = DB::now();
+            $price = (int) (Settings::all($pdo)['price_cents'] ?? 7990);
+            DB::run($pdo, 'INSERT INTO plans (slug, name_pt, name_en, name_es, desc_pt, desc_en, desc_es, features, interval_months, price_cents, active, featured, sort, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 1, 1, 10, ?, ?)', [
+                'mensal', 'Plano mensal', 'Monthly plan', 'Plan mensual',
+                'Acesso completo, sem fidelidade.', 'Full access, no lock-in.', 'Acceso completo, sin permanencia.',
+                json_encode([
+                    'pt' => ['Todas as aulas das 9 fases', 'Corpo 3D com biomecânica e músculos', 'Progresso, conquistas e desafios', 'Cancele quando quiser'],
+                    'en' => ['All lessons across the 9 phases', '3D body with biomechanics and muscles', 'Progress, achievements and challenges', 'Cancel anytime'],
+                    'es' => ['Todas las clases de las 9 fases', 'Cuerpo 3D con biomecánica y músculos', 'Progreso, logros y desafíos', 'Cancela cuando quieras'],
+                ], JSON_UNESCAPED_UNICODE), $price, $now, $now,
+            ]);
+        }
     }
 
     private static function v2(PDO $pdo): void
@@ -319,6 +373,8 @@ final class Settings
         ],
         // identificação do controlador (LGPD art. 41/9º) — exibida no rodapé legal
         'email_layout' => [],
+        // regras de desconto: teto em %, acúmulo promoção+código e preço mínimo (centavos)
+        'pricing_rules' => ['max_discount_pct' => 70, 'allow_stack' => false, 'min_price_cents' => 990],
         'company' => ['legal_name' => '', 'trade_name' => 'THE FULL SCULPT', 'cnpj' => '', 'address' => '', 'support_email' => '', 'dpo_name' => '', 'dpo_email' => ''],
     ];
 

@@ -49,7 +49,7 @@ interface State {
   setAnswers: (a: Partial<Answers>) => void;
   setParq: (q: string, value: boolean) => void;
   finishAnamnese: () => Assignment;
-  subscribe: () => Promise<void>;
+  subscribe: (opts?: { planId?: number; code?: string }) => Promise<void>;
   advancePhase: () => Promise<void>;
   applyServer: (s: ServerState) => void;
   refresh: () => Promise<void>;
@@ -143,9 +143,9 @@ export const useStore = create<State>()(
         }
         return assignment;
       },
-      subscribe: async () => {
+      subscribe: async (opts) => {
         if (get().mode === "user") {
-          get().applyServer(await api<ServerState>("POST", "/subscription/activate"));
+          get().applyServer(await api<ServerState>("POST", "/subscription/activate", opts?.planId ? { plan_id: opts.planId, code: opts.code || undefined } : undefined));
         } else {
           set({ sub: "active" });
         }

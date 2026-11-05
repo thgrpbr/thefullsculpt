@@ -220,9 +220,9 @@ const es: Dict = {
     cookieText: "Solo cookies esenciales, sin publicidad.",
     cookieMore: "Más información", cookieOk: "Entendido",
     rights: "Tus derechos (LGPD)", dpo: "Encargado de datos (DPO)", contact: "Contacto", cnpj: "CNPJ",
-    renew: "La suscripción se renueva automáticamente cada mes hasta que la canceles. Puedes cancelar cuando quieras desde tu perfil, sin multa.",
+    renew: "La suscripción se renueva automáticamente al final de cada período contratado hasta que la canceles. Puedes cancelar cuando quieras desde tu perfil, sin multa.",
     withdraw: "Derecho de arrepentimiento: reembolso total dentro de 7 días de la primera contratación (Código del Consumidor de Brasil, art. 49).",
-    accept: "He leído y acepto los Términos de Uso, la Política de Reembolso y la renovación mensual automática.",
+    accept: "He leído y acepto los Términos de Uso, la Política de Reembolso y la renovación automática.",
     terms: "Términos", refund: "Reembolso", privacy: "Privacidad",
     healthNote: "Contenido educativo: no sustituye una evaluación médica. Detente si sientes dolor, mareo o falta de aire. Ante la duda, consulta a tu médico.",
     needAccept: "Confirma para continuar.",
@@ -264,7 +264,16 @@ const es: Dict = {
     sent: "Enviamos un nuevo enlace. Revisa tu bandeja y el spam.", sendError: "No se pudo reenviar ahora. Inténtalo en unos minutos.",
     needForPay: "Confirma tu correo (enlace enviado al registrarte) para suscribirte.",
   },
+  plans: {
+    choose: "Elige tu plan", codePlaceholder: "Código promocional", apply: "Aplicar", codeApplied: "Código {code} aplicado.",
+    err: {
+      generic: "No se pudo validar el código ahora.", code_invalid: "Código inválido.", code_expired: "Este código está fuera de vigencia.", code_exhausted: "Este código se agotó.",
+      code_not_for_plan: "Este código no vale para este plan.", code_first_purchase: "Este código vale solo en la primera compra.", code_already_used: "Ya usaste este código.",
+      promo_better: "La promoción vigente ya da un descuento mayor; se mantuvo.",
+    },
+  },
   pricing: {
+    interval: { month: "/mes", quarter: "/trimestre", semester: "/semestre", year: "/año" },
     name: "Plan mensual", per: "/mes", p1: "Todas las clases de las 9 fases", p2: "Cuerpo 3D con biomecánica y músculos",
     p3: "Progreso, logros y retos", p4: "Cancela cuando quieras",
   },
@@ -289,7 +298,7 @@ const es: Dict = {
     teachersText: "Los profesores registran alumnos con su enlace, siguen constancia y progreso, crean retos y reciben comisión recurrente mientras el alumno siga activo.",
     teachersCta: "Quiero ser profesor Sculpt",
     teachers: { t1: "Enlace propio para invitar alumnos", t2: "Panel con el ritmo y progreso de tu grupo", t3: "Comisión recurrente por alumno activo" },
-    pricingTitle: "Un plan. Todo desbloqueado.", footer: "Tus datos de salud se tratan conforme a la LGPD de Brasil.",
+    pricingTitle: "Precios simples. Todo desbloqueado.", footer: "Tus datos de salud se tratan conforme a la LGPD de Brasil.",
   },
 };
 

@@ -9,6 +9,7 @@ require __DIR__ . '/lib/demo.php';
 require __DIR__ . '/lib/mail.php';
 require __DIR__ . '/lib/gateways.php';
 require __DIR__ . '/lib/perms.php';
+require __DIR__ . '/lib/pricing.php';
 
 use TFS\Audit;
 use TFS\Auth;
@@ -94,6 +95,8 @@ if (str_starts_with($path, '/admin/legal')) {
     require __DIR__ . '/lib/routes/users.php';
 } elseif (str_starts_with($path, '/admin/emails')) {
     require __DIR__ . '/lib/routes/emails.php';
+} elseif (str_starts_with($path, '/admin/pricing')) {
+    require __DIR__ . '/lib/routes/pricing.php';
 } elseif (str_starts_with($path, '/admin')) {
     require __DIR__ . '/lib/routes/admin.php';
 }
@@ -102,6 +105,27 @@ if ($path === '/legal' || str_starts_with($path, '/legal/')) {
 }
 if (str_starts_with($path, '/webhooks/')) {
     require __DIR__ . '/lib/routes/webhooks.php';
+}
+if ($method === 'GET' && $path === '/plans') {
+    // Planos ativos com o preço já considerando promoções automáticas vigentes (alimenta a landing e a assinatura).
+    $out = [];
+    foreach (DB::all($pdo, 'SELECT * FROM plans WHERE active = 1 ORDER BY sort, id') as $pl) {
+        $q = \TFS\Pricing::quote($pdo, $pl, null, null);
+        $out[] = \TFS\Pricing::planView($pl) + ['final_cents' => $q['total_cents'], 'discount_cents' => $q['discount_cents'], 'discount_pct' => $q['discount_pct'], 'promo_label' => $q['promo']['label'] ?? ($q['promo']['name'] ?? null)];
+    }
+    Http::json(['plans' => $out]);
+}
+if ($method === 'POST' && $path === '/plans/quote') {
+    $b = Http::body();
+    if (!Rate::hit($pdo, "quote:$ip", 60, 600)) {
+        Http::fail(429, 'rate_limited');
+    }
+    $pl = ctype_digit((string) ($b['plan_id'] ?? '')) ? DB::one($pdo, 'SELECT * FROM plans WHERE id = ? AND active = 1', [(int) $b['plan_id']]) : \TFS\Pricing::defaultPlan($pdo);
+    if (!$pl) {
+        Http::fail(404, 'plan_not_found');
+    }
+    $me = Auth::user($pdo, $cfg);
+    Http::json(\TFS\Pricing::quote($pdo, $pl, is_string($b['code'] ?? null) ? $b['code'] : null, $me ? (int) $me['id'] : null));
 }
 if ($method === 'GET' && $path === '/gateways/checkout-config') {
     // Somente dados PÚBLICOS necessários para montar o checkout transparente (nunca segredos).
@@ -427,7 +451,36 @@ switch ("$method $path") {
             Http::fail(403, 'email_not_verified');
         }
         if (!DB::one($pdo, "SELECT id FROM subscriptions WHERE user_id = ? AND status = 'active'", [$user['id']])) {
-            Billing::recordPayment($pdo, (int) $user['id'], (int) \TFS\Settings::all($pdo)['price_cents'], 'card', 'test');
+            $b = Http::body();
+            $pl = ctype_digit((string) ($b['plan_id'] ?? '')) ? DB::one($pdo, 'SELECT * FROM plans WHERE id = ? AND active = 1', [(int) $b['plan_id']]) : \TFS\Pricing::defaultPlan($pdo);
+            if (!$pl) {
+                Http::fail(404, 'plan_not_found');
+            }
+            $q = \TFS\Pricing::quote($pdo, $pl, is_string($b['code'] ?? null) ? $b['code'] : null, (int) $user['id']);
+            if (is_string($b['code'] ?? null) && trim($b['code']) !== '' && $q['code'] === null) {
+                Http::fail(422, (string) ($q['code_error'] ?? 'code_invalid'));   // código informado mas não aplicável: não cobra sem avisar
+            }
+            $pdo->beginTransaction();
+            try {
+                if ($q['code']) {
+                    // consome o código com checagem atômica do limite de usos
+                    $n = DB::run($pdo, 'UPDATE promo_codes SET uses = uses + 1 WHERE id = ? AND (max_uses IS NULL OR uses < max_uses)', [$q['code']['id']]);
+                    if ($n === 0) {
+                        throw new \RuntimeException('code_exhausted');
+                    }
+                    DB::run($pdo, 'INSERT INTO promo_redemptions (code_id, user_id, plan_id, discount_cents, created_at) VALUES (?, ?, ?, ?, ?)',
+                        [$q['code']['id'], $user['id'], $pl['id'], $q['code']['discount_cents'], DB::now()]);
+                }
+                Billing::recordPayment($pdo, (int) $user['id'], (int) $q['total_cents'], 'card', 'test');
+                DB::run($pdo, "UPDATE subscriptions SET plan = ? WHERE user_id = ? AND status = 'active'", [$pl['slug'], $user['id']]);
+                $pdo->commit();
+            } catch (\Throwable $e) {
+                $pdo->rollBack();
+                if ($e->getMessage() === 'code_exhausted' || str_contains($e->getMessage(), 'UNIQUE') || str_contains($e->getMessage(), 'Duplicate')) {
+                    Http::fail(422, 'code_exhausted');
+                }
+                throw $e;
+            }
         }
         DB::run($pdo, "UPDATE user_stats SET sub_status = 'active', updated_at = ? WHERE user_id = ?", [DB::now(), $user['id']]);
         Audit::log($pdo, $cfg, (int) $user['id'], 'subscription_test_activate');

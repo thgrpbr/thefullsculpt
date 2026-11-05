@@ -217,3 +217,34 @@ input::placeholder {
   font-weight: 300;
   font-family: inherit;
 }
+
+/* Barras de rolagem discretas (sem setas) em todo o sistema */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(140, 135, 126, 0.45) transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(140, 135, 126, 0.4);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+/* rolagem horizontal nunca cria uma barra vertical por 1px de diferença */
+.overflow-x-auto {
+  overflow-y: hidden;
+}
+
+/* itens de grid/flex podem encolher (evita estourar a largura da tela em celulares e tablets) */
+.grid > * {
+  min-width: 0;
+}

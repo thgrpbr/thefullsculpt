@@ -49,7 +49,7 @@ export function Card({ title, sub, action, children, className = "", pad = true 
   return (
     <section className={`card shadow-[0_1px_2px_rgba(22,21,20,0.03)] ${className}`} style={{ borderRadius: 18 }}>
       {(title || action) && (
-        <header className="flex items-start justify-between gap-3 px-5 pt-[18px]">
+        <header className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 px-5 pt-[18px]">
           <div className="min-w-0">
             {title && <h2 className="text-[14px] font-medium leading-snug">{title}</h2>}
             {sub && <p className="mt-1 text-[12px] leading-relaxed text-muted">{sub}</p>}

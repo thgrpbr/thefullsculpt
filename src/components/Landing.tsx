@@ -68,7 +68,7 @@ export default function Landing() {
           <div className="mb-8 flex flex-col items-center gap-5 text-center">
             <h2 className="font-display text-4xl md:text-6xl">{t("landing.demoTitle")}</h2>
             <p className="max-w-xl text-muted">{t("landing.demoText")}</p>
-            <div className="flex gap-2" role="group" aria-label={t("landing.demoTitle")}>
+            <div className="flex flex-wrap gap-2" role="group" aria-label={t("landing.demoTitle")}>
               {DEMO_EXERCISES.map((e) => (
                 <button key={e} type="button" className="chip" aria-pressed={ex === e} onClick={() => setEx(e)}>{t(`ex.${e}.name`)}</button>
               ))}
@@ -85,7 +85,7 @@ export default function Landing() {
             <h2 className="font-display mt-3 text-center text-4xl md:text-6xl">{t("landing.methodTitle")}</h2>
             <p className="mx-auto mt-4 max-w-xl text-center text-muted">{t("landing.methodText")}</p>
             <div className="mt-12 overflow-x-auto">
-              <div className="mx-auto grid min-w-[480px] max-w-3xl grid-cols-[110px_repeat(3,1fr)] gap-2">
+              <div className="mx-auto grid max-w-3xl grid-cols-[76px_repeat(3,1fr)] gap-1.5 sm:grid-cols-[110px_repeat(3,1fr)] sm:gap-2">
                 <div />
                 {INTENSITIES.map((i) => <div key={i} className="eyebrow pb-1 text-center">{t(`intensity.${i}`)}</div>)}
                 {LEVELS.map((lv, li) => (

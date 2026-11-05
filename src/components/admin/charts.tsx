@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 /** Largura real do contêiner (ResizeObserver) para desenhar SVG nítido sem distorcer texto. */
-function useWidth(initial = 600) {
+function useWidth(initial = 320) {
   const ref = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(initial);
   useEffect(() => {
@@ -35,14 +35,14 @@ export const C = {
 
 export function Sparkline({ values, color = C.bronze, height = 28 }: { values: number[]; color?: string; height?: number }) {
   const [ref, w] = useWidth(100);
-  if (values.length < 2) return <div ref={ref} style={{ height }} />;
+  if (values.length < 2) return <div ref={ref} className="w-full min-w-0 overflow-x-clip" style={{ height }} />;
   const max = Math.max(...values, 1);
   const min = Math.min(...values, 0);
   const x = (i: number) => (i / (values.length - 1)) * (w - 2) + 1;
   const y = (v: number) => height - 3 - ((v - min) / (max - min || 1)) * (height - 6);
   const d = values.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
   return (
-    <div ref={ref} style={{ height }} aria-hidden="true">
+    <div ref={ref} className="w-full min-w-0 overflow-x-clip" style={{ height }} aria-hidden="true">
       <svg width={w} height={height}>
         <path d={`${d}L${x(values.length - 1)},${height}L${x(0)},${height}Z`} fill={color} opacity={0.1} />
         <path d={d} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
@@ -86,7 +86,7 @@ export function LineChart({
   const step = Math.ceil(n / Math.max(2, Math.floor((w - padL) / 56)));
 
   return (
-    <div ref={ref} className="relative" role="img" aria-label={label}>
+    <div ref={ref} className="relative w-full min-w-0 overflow-x-clip" role="img" aria-label={label}>
       <svg
         width={w}
         height={height}
@@ -164,7 +164,7 @@ export function BarChart({
   const every = Math.max(1, Math.ceil(values.length / Math.max(4, Math.floor(w / 34))));
   const x = (i: number) => (i + 0.5) * (w / values.length);
   return (
-    <div ref={ref} role="img" aria-label={label}>
+    <div ref={ref} className="w-full min-w-0 overflow-x-clip" role="img" aria-label={label}>
       <svg width={w} height={height} onPointerLeave={() => setHover(null)}>
         {values.map((v, i) => {
           const h = (v / max) * (height - padT - padB);

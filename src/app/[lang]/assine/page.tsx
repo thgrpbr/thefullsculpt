@@ -16,6 +16,7 @@ export default function Subscribe() {
   const hydrated = useHydrated();
   const subscribe = useStore((s) => s.subscribe);
   const sub = useStore((s) => s.sub);
+  const emailVerified = useStore((s) => s.emailVerified);
   const [busy, setBusy] = useState(false);
   const [agree, setAgree] = useState(false);
 
@@ -65,10 +66,11 @@ export default function Subscribe() {
               <span>{t("legalui.accept")} <Link href={href("/legal?doc=terms")} target="_blank" className="text-bronze underline underline-offset-2">{t("legalui.terms")}</Link> · <Link href={href("/legal?doc=refund")} target="_blank" className="text-bronze underline underline-offset-2">{t("legalui.refund")}</Link></span>
             </label>
           </div>
-          <button type="button" onClick={pay} disabled={busy || sub === "active" || !agree} className="btn btn-ember mt-6 w-full disabled:opacity-60">
+          <button type="button" onClick={pay} disabled={busy || sub === "active" || !agree || !emailVerified} className="btn btn-ember mt-6 w-full disabled:opacity-60">
             <Lock size={15} aria-hidden="true" />
             {sub === "active" ? t("paywall.already") : busy ? t("common.loading") : t("paywall.cta")}
           </button>
+          {!emailVerified && <p role="alert" className="mt-3 text-center text-[13px] text-ember">{t("verify.needForPay")}</p>}
           {error && <p role="alert" className="mt-3 text-center text-[13px] text-ember">{error}</p>}
           <p className="mt-4 text-center text-[12px] text-muted">{t("paywall.secure")}</p>
         </div>

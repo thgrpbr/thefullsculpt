@@ -257,6 +257,13 @@ const en: Dict = {
     },
     draft: "We picked up where you left off. For safety, please type your password again.",
   },
+  verify: {
+    checking: "Confirming your email…", okTitle: "Email confirmed", okText: "All set! Your account is active.", toApp: "Open my training", toLogin: "Log in",
+    badTitle: "Invalid or expired link", badText: "This confirmation link was already used or has expired. Log in and ask for a new confirmation email.",
+    banner: "Confirm your email to activate your account and subscribe. We sent a link to your inbox.", resend: "Resend email",
+    sent: "We sent a new link. Check your inbox and spam.", sendError: "Couldn't resend right now. Try again in a few minutes.",
+    needForPay: "Confirm your email (link sent at sign-up) to subscribe.",
+  },
   pricing: {
     name: "Monthly plan", per: "/month", p1: "All lessons across the 9 phases", p2: "3D body with biomechanics and muscles",
     p3: "Progress, achievements and challenges", p4: "Cancel anytime",

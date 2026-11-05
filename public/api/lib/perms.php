@@ -32,6 +32,7 @@ final class Perms
         'appointments.manage' => ['Consultas', 'Criar e editar consultas'],
         'settings.manage' => ['Sistema', 'Preço, comissões e regras'],
         'system.manage' => ['Sistema', 'SMTP, banco de dados e dados demo'],
+        'emails.manage' => ['Sistema', 'Editar e-mails e layouts'],
         'audit.view' => ['Conformidade', 'Auditoria e LGPD'],
         'legal.view' => ['Jurídico', 'Ver documentos jurídicos e histórico'],
         'legal.edit' => ['Jurídico', 'Cadastrar e editar documentos, comentar, aprovar'],
@@ -117,7 +118,7 @@ final class Perms
             '/admin/commissions' => $read ? 'commissions.view' : 'commissions.manage', '/admin/payouts' => $read ? 'commissions.view' : 'commissions.manage',
             '/admin/gateways' => 'gateways.manage',
             '/admin/appointments' => $read ? 'appointments.view' : 'appointments.manage',
-            '/admin/settings' => 'settings.manage',
+            '/admin/settings' => 'settings.manage', '/admin/emails' => 'emails.manage',
             '/admin/smtp' => 'system.manage', '/admin/database' => 'system.manage', '/admin/system' => 'system.manage', '/admin/demo' => 'system.manage',
             '/admin/audit' => 'audit.view', '/admin/privacy' => 'audit.view',
         ];

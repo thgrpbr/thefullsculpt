@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { ChartNoAxesColumn, House, Layers, LogOut, Trophy, User } from "lucide-react";
+import { ChartNoAxesColumn, House, Layers, LogOut, MailWarning, Trophy, User } from "lucide-react";
 import { LangSwitch, Wordmark } from "@/components/ui";
 import { useI18n } from "@/i18n/provider";
 import { api, ApiError, type ServerState } from "@/lib/api";
@@ -33,6 +33,17 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const mode = useStore((s) => s.mode);
   const applyServer = useStore((s) => s.applyServer);
   const [checked, setChecked] = useState(false);
+  const emailVerified = useStore((s) => s.emailVerified);
+  const [resent, setResent] = useState<"" | "sending" | "sent" | "error">("");
+  async function resend() {
+    setResent("sending");
+    try {
+      await api("POST", "/auth/resend-verification");
+      setResent("sent");
+    } catch {
+      setResent("error");
+    }
+  }
 
   // Confere a sessão no servidor (cookie HttpOnly). Modo demonstração não consulta o servidor.
   useEffect(() => {
@@ -122,6 +133,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             </button>
           </nav>
         </>
+      )}
+
+      {mode === "user" && !emailVerified && (
+        <div role="status" className="mx-auto mt-3 flex w-[calc(100%-32px)] max-w-xl items-center gap-3 rounded-2xl border-[0.5px] border-bronze/50 bg-surface px-4 py-3 text-[12px] leading-snug">
+          <MailWarning size={18} strokeWidth={1.5} className="shrink-0 text-bronze" aria-hidden="true" />
+          <p className="min-w-0 flex-1 text-muted">{resent === "sent" ? t("verify.sent") : resent === "error" ? t("verify.sendError") : t("verify.banner")}</p>
+          {resent !== "sent" && <button type="button" onClick={resend} disabled={resent === "sending"} className="shrink-0 whitespace-nowrap rounded-full bg-fg px-3.5 py-1.5 text-bg disabled:opacity-50">{t("verify.resend")}</button>}
+        </div>
       )}
 
       {isDemo && !inLesson && (

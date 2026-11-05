@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import {
-  CalendarClock, ChartNoAxesColumn, CreditCard, Dumbbell, KeyRound, Landmark, LogOut, Scale, Settings, ShieldCheck, UsersRound, UserRoundCheck, ArrowUpRight,
+  CalendarClock, ChartNoAxesColumn, CreditCard, Dumbbell, KeyRound, Mail, Landmark, LogOut, Scale, Settings, ShieldCheck, UsersRound, UserRoundCheck, ArrowUpRight,
 } from "lucide-react";
 import { useI18n } from "@/i18n/provider";
 import { api, ApiError, type ServerState } from "@/lib/api";
@@ -22,6 +22,7 @@ const NAV = [
   { path: "/admin/gateways", label: "Gateways", icon: Landmark, perm: ["gateways.manage"] },
   { path: "/admin/consultas", label: "Consultas", icon: CalendarClock, perm: ["appointments.view"] },
   { path: "/admin/configuracoes", label: "Configurações", icon: Settings, perm: ["settings.manage", "system.manage"] },
+  { path: "/admin/emails", label: "E-mails e layouts", icon: Mail, perm: ["emails.manage"] },
   { path: "/admin/juridico", label: "Jurídico", icon: Scale, perm: ["legal.view"] },
   { path: "/admin/auditoria", label: "Auditoria e LGPD", icon: ShieldCheck, perm: ["audit.view"] },
   { path: "/admin/usuarios", label: "Equipe e permissões", icon: KeyRound, perm: "master" },

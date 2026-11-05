@@ -368,7 +368,7 @@ final class State
         );
         $p = Game::phase($phase);
         return [
-            'profile' => ['name' => $user['name'], 'email' => $user['email'], 'role' => $user['role'], 'permissions' => Perms::of($user), 'profileLabel' => $user['profile_label'] ?? null],
+            'profile' => ['name' => $user['name'], 'email' => $user['email'], 'role' => $user['role'], 'permissions' => Perms::of($user), 'profileLabel' => $user['profile_label'] ?? null, 'emailVerified' => Mailer::isVerified($pdo, $user)],
             'consents' => [
                 'health' => (bool) ($consents['health']['granted'] ?? false),
                 'terms' => (bool) ($consents['terms']['granted'] ?? false),
@@ -540,6 +540,11 @@ final class Seed
             DB::run($pdo, 'INSERT INTO users (email, password_hash, name, role, locale, created_at) VALUES (?, ?, ?, ?, ?, ?)',
                 [self::TEST_EMAIL, Auth::hash($password), 'Marina Duarte (teste)', 'student', 'pt', $now]);
             $uid = (int) $pdo->lastInsertId();
+            try {
+                // e-mail já confirmado (a coluna só existe depois da migração v6; antes dela a migração marca todos como confirmados)
+                DB::run($pdo, 'UPDATE users SET email_verified_at = ? WHERE id = ?', [$now, $uid]);
+            } catch (\Throwable) {
+            }
             foreach (['terms', 'health'] as $type) {
                 DB::run($pdo, 'INSERT INTO consents (user_id, type, granted, version, ip_hash, created_at) VALUES (?, ?, 1, ?, ?, ?)',
                     [$uid, $type, 'seed', Crypto::ipHash($cfg), $now]);

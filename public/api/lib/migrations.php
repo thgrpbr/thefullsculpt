@@ -12,7 +12,7 @@ use PDO;
 
 final class Migrator
 {
-    public const LATEST = 5;
+    public const LATEST = 6;
     private static bool $done = false;
 
     public static function run(PDO $pdo, bool $force = false): void
@@ -93,6 +93,9 @@ final class Migrator
         }
         if ($v === 5) {
             self::v5($pdo);
+        }
+        if ($v === 6) {
+            self::v6($pdo);
         }
     }
 
@@ -180,6 +183,28 @@ final class Migrator
             action VARCHAR(20) NOT NULL, note VARCHAR(300) NULL, chars_added INT NOT NULL DEFAULT 0, chars_removed INT NOT NULL DEFAULT 0,
             content_before $text NULL, content_after $text NULL, content_hash CHAR(64) NULL, prev_hash CHAR(64) NULL, entry_hash CHAR(64) NOT NULL, created_at $dt NOT NULL)$tail");
         self::exec($pdo, ($sqlite ? 'CREATE INDEX IF NOT EXISTS' : 'CREATE INDEX') . ' ix_le_slug ON legal_edits (slug, id)');
+    }
+
+    /** v6: verificação de e-mail do cadastro e templates de e-mail editáveis no admin. */
+    private static function v6(PDO $pdo): void
+    {
+        $sqlite = DB::driver($pdo) === 'sqlite';
+        $id = $sqlite ? 'INTEGER PRIMARY KEY AUTOINCREMENT' : 'BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY';
+        $u = $sqlite ? 'INTEGER' : 'BIGINT UNSIGNED';
+        $dt = $sqlite ? 'TEXT' : 'DATETIME';
+        $tail = $sqlite ? '' : ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
+        $text = $sqlite ? 'TEXT' : 'MEDIUMTEXT';
+        if (!self::hasColumn($pdo, 'users', 'email_verified_at')) {
+            $pdo->exec("ALTER TABLE users ADD COLUMN email_verified_at $dt NULL");
+            // quem já tinha conta antes desta versão é considerado verificado
+            $pdo->exec('UPDATE users SET email_verified_at = created_at');
+        }
+        self::exec($pdo, "CREATE TABLE IF NOT EXISTS email_verifications (
+            id $id, user_id $u NOT NULL, token_hash CHAR(64) NOT NULL UNIQUE, expires_at $dt NOT NULL, used_at $dt NULL, created_at $dt NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE)$tail");
+        self::exec($pdo, "CREATE TABLE IF NOT EXISTS email_templates (
+            kind VARCHAR(20) NOT NULL, lang VARCHAR(2) NOT NULL, subject VARCHAR(200) NOT NULL, title VARCHAR(200) NOT NULL, body $text NOT NULL,
+            cta VARCHAR(80) NOT NULL, foot VARCHAR(400) NOT NULL, updated_by $u NULL, updated_at $dt NOT NULL, PRIMARY KEY (kind, lang))$tail");
     }
 
     private static function v2(PDO $pdo): void
@@ -293,6 +318,7 @@ final class Settings
             'public_url' => 'https://thefullsculpt.com.br',
         ],
         // identificação do controlador (LGPD art. 41/9º) — exibida no rodapé legal
+        'email_layout' => [],
         'company' => ['legal_name' => '', 'trade_name' => 'THE FULL SCULPT', 'cnpj' => '', 'address' => '', 'support_email' => '', 'dpo_name' => '', 'dpo_email' => ''],
     ];
 

@@ -255,6 +255,13 @@ const pt = {
     },
     draft: "Retomamos de onde você parou. Por segurança, digite a senha novamente.",
   },
+  verify: {
+    checking: "Confirmando seu e-mail…", okTitle: "E-mail confirmado", okText: "Tudo certo! Sua conta está ativa.", toApp: "Abrir meu treino", toLogin: "Entrar",
+    badTitle: "Link inválido ou expirado", badText: "O link de confirmação já foi usado ou venceu. Entre na sua conta e peça um novo e-mail de confirmação.",
+    banner: "Confirme seu e-mail para ativar a conta e poder assinar. Enviamos um link para a sua caixa de entrada.", resend: "Reenviar e-mail",
+    sent: "Enviamos um novo link. Confira a caixa de entrada e o spam.", sendError: "Não foi possível reenviar agora. Tente em alguns minutos.",
+    needForPay: "Confirme seu e-mail (link enviado no cadastro) para poder assinar.",
+  },
   pricing: {
     name: "Plano mensal", per: "/mês", p1: "Todas as aulas das 9 fases", p2: "Corpo 3D com biomecânica e músculos",
     p3: "Progresso, conquistas e desafios", p4: "Cancele quando quiser",

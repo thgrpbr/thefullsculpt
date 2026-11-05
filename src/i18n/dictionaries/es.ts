@@ -257,6 +257,13 @@ const es: Dict = {
     },
     draft: "Retomamos donde lo dejaste. Por seguridad, escribe la contraseña de nuevo.",
   },
+  verify: {
+    checking: "Confirmando tu correo…", okTitle: "Correo confirmado", okText: "¡Listo! Tu cuenta está activa.", toApp: "Abrir mi entrenamiento", toLogin: "Entrar",
+    badTitle: "Enlace inválido o vencido", badText: "El enlace de confirmación ya se usó o venció. Inicia sesión y pide un nuevo correo de confirmación.",
+    banner: "Confirma tu correo para activar la cuenta y poder suscribirte. Enviamos un enlace a tu bandeja.", resend: "Reenviar correo",
+    sent: "Enviamos un nuevo enlace. Revisa tu bandeja y el spam.", sendError: "No se pudo reenviar ahora. Inténtalo en unos minutos.",
+    needForPay: "Confirma tu correo (enlace enviado al registrarte) para suscribirte.",
+  },
   pricing: {
     name: "Plan mensual", per: "/mes", p1: "Todas las clases de las 9 fases", p2: "Cuerpo 3D con biomecánica y músculos",
     p3: "Progreso, logros y retos", p4: "Cancela cuando quieras",

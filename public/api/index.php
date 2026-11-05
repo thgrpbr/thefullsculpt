@@ -92,6 +92,8 @@ if (str_starts_with($path, '/admin/legal')) {
     require __DIR__ . '/lib/routes/legal.php';
 } elseif (str_starts_with($path, '/admin/users')) {
     require __DIR__ . '/lib/routes/users.php';
+} elseif (str_starts_with($path, '/admin/emails')) {
+    require __DIR__ . '/lib/routes/emails.php';
 } elseif (str_starts_with($path, '/admin')) {
     require __DIR__ . '/lib/routes/admin.php';
 }
@@ -183,9 +185,39 @@ switch ("$method $path") {
         }
         Audit::log($pdo, $cfg, $uid, 'register');
         Auth::start($pdo, $cfg, $uid);
-        Mailer::notify($pdo, $cfg, 'welcome', $email, $locale, ['url' => Mailer::publicUrl($pdo) . '/' . $locale . '/app/']);
         $user = DB::one($pdo, 'SELECT * FROM users WHERE id = ?', [$uid]);
+        Mailer::sendVerification($pdo, $cfg, $user, $locale);   // link para o aluno abrir e confirmar o e-mail
+
         Http::json(State::forUser($pdo, $cfg, $user), 201);
+
+    case 'POST /auth/verify-email':
+        $b = Http::body();
+        $token = (string) ($b['token'] ?? '');
+        if (!Rate::hit($pdo, "verify:$ip", 20, 3600)) {
+            Http::fail(429, 'rate_limited');
+        }
+        $row = preg_match('/^[a-f0-9]{64}$/', $token)
+            ? DB::one($pdo, 'SELECT id, user_id FROM email_verifications WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?', [hash('sha256', $token), DB::now()])
+            : null;
+        if (!$row) {
+            Http::fail(400, 'invalid_token');
+        }
+        DB::run($pdo, 'UPDATE email_verifications SET used_at = ? WHERE id = ?', [DB::now(), $row['id']]);
+        DB::run($pdo, 'UPDATE users SET email_verified_at = COALESCE(email_verified_at, ?) WHERE id = ?', [DB::now(), $row['user_id']]);
+        Audit::log($pdo, $cfg, (int) $row['user_id'], 'email_verified');
+        Http::json(['ok' => true]);
+
+    case 'POST /auth/resend-verification':
+        $user = requireUser($pdo, $cfg);
+        if (Mailer::isVerified($pdo, $user)) {
+            Http::json(['ok' => true, 'verified' => true]);
+        }
+        if (!Rate::hit($pdo, 'resendv:' . $user['id'], 3, 3600)) {
+            Http::fail(429, 'rate_limited');
+        }
+        Mailer::sendVerification($pdo, $cfg, $user, in_array($user['locale'], ['pt', 'en', 'es'], true) ? (string) $user['locale'] : 'pt');
+        Audit::log($pdo, $cfg, (int) $user['id'], 'email_verification_sent');
+        Http::json(['ok' => true]);
 
     case 'POST /auth/login':
         $b = Http::body();
@@ -390,6 +422,9 @@ switch ("$method $path") {
         $user = requireUser($pdo, $cfg);
         if (($cfg['allow_test_subscription'] ?? false) !== true) {
             Http::fail(403, 'forbidden');
+        }
+        if (!Mailer::isVerified($pdo, $user)) {
+            Http::fail(403, 'email_not_verified');
         }
         if (!DB::one($pdo, "SELECT id FROM subscriptions WHERE user_id = ? AND status = 'active'", [$user['id']])) {
             Billing::recordPayment($pdo, (int) $user['id'], (int) \TFS\Settings::all($pdo)['price_cents'], 'card', 'test');

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PasswordField } from "@/components/PasswordField";
 import { ChevronDown } from "lucide-react";
 import { ERRORS, num, send, useApi } from "@/lib/admin";
 import { useStore } from "@/lib/store";
@@ -88,7 +89,7 @@ function SmtpForm({ s, adminEmail, onSaved, toast }: { s: Smtp; adminEmail: stri
         </Field>
         <Field label="Usuário"><input className={inputCls} value={f.user} onChange={(e) => set("user", e.target.value)} autoComplete="off" placeholder="contato@seudominio.com" /></Field>
         <Field label="Senha" hint={s.has_password ? "Já há uma senha salva (criptografada). Deixe em branco para mantê-la." : "Será guardada criptografada no servidor."}>
-          <input className={inputCls} type="password" value={f.password} onChange={(e) => set("password", e.target.value)} autoComplete="new-password" placeholder={s.has_password ? "••••••••••" : ""} />
+          <PasswordField meter={false} className={inputCls} value={f.password} onChange={(v) => set("password", v)} autoComplete="new-password" placeholder={s.has_password ? "••••••••••" : ""} label="Senha" />
         </Field>
         <Field label="Nome do remetente"><input className={inputCls} value={f.from_name} onChange={(e) => set("from_name", e.target.value)} /></Field>
         <Field label="E-mail do remetente"><input className={inputCls} type="email" value={f.from_email} onChange={(e) => set("from_email", e.target.value)} placeholder="nao-responder@seudominio.com" /></Field>
@@ -222,13 +223,13 @@ export function DatabaseCard() {
               <Field label="Servidor"><input className={inputCls} value={f.host} onChange={(e) => set("host", e.target.value)} autoComplete="off" /></Field>
               <Field label="Nome do banco"><input className={inputCls} value={f.dbname} onChange={(e) => set("dbname", e.target.value)} autoComplete="off" /></Field>
               <Field label="Usuário"><input className={inputCls} value={f.user} onChange={(e) => set("user", e.target.value)} autoComplete="off" /></Field>
-              <Field label="Senha do banco"><input className={inputCls} type="password" value={f.password} onChange={(e) => set("password", e.target.value)} autoComplete="new-password" /></Field>
+              <Field label="Senha do banco"><PasswordField meter={false} className={inputCls} value={f.password} onChange={(v) => set("password", v)} autoComplete="new-password" label="Senha do banco" /></Field>
             </div>
             {res && <p role="status" className={`rounded-xl px-3 py-2 text-[12px] ${res.ok ? "bg-[#6f8a6b]/10 text-[#4f6a4b]" : "bg-ember/5 text-ember"}`}>{res.text}</p>}
             {needs && <label className="flex items-start gap-2 text-[12px]"><input type="checkbox" checked={confirmEmpty} onChange={(e) => setConfirmEmpty(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#161514]" />O banco de destino está vazio: criar as tabelas do sistema nele. Os dados do banco atual não serão copiados.</label>}
             <div className="flex flex-wrap items-end gap-3">
               <Btn onClick={test} disabled={busy || !f.dbname || !f.user}>{busy ? "Testando…" : "Testar conexão"}</Btn>
-              <div className="w-[260px]"><Field label="Sua senha de administrador (para aplicar)"><input className={inputCls} type="password" value={f.admin_password} onChange={(e) => set("admin_password", e.target.value)} autoComplete="current-password" /></Field></div>
+              <div className="w-[260px]"><Field label="Sua senha de administrador (para aplicar)"><PasswordField meter={false} className={inputCls} value={f.admin_password} onChange={(v) => set("admin_password", v)} autoComplete="current-password" label="Sua senha de administrador" /></Field></div>
               <Btn variant="danger" onClick={apply} disabled={busy || !f.dbname || !f.user || !f.admin_password || (needs && !confirmEmpty)}>Aplicar credenciais</Btn>
               <Btn onClick={() => { setEdit(false); setRes(null); }}>Cancelar</Btn>
             </div>

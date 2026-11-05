@@ -27,7 +27,7 @@ const BAR: Record<PwLevel, { n: number; color: string }> = {
 };
 
 /** Campo de senha com botão de mostrar/ocultar, medidor de segurança e lista de requisitos. */
-export function PasswordField({ value, onChange, placeholder, autoComplete = "new-password", meter = true }: { value: string; onChange: (v: string) => void; placeholder: string; autoComplete?: string; meter?: boolean }) {
+export function PasswordField({ value, onChange, placeholder = "", autoComplete = "new-password", meter = true, className = "", required = false, label }: { value: string; onChange: (v: string) => void; placeholder?: string; autoComplete?: string; meter?: boolean; className?: string; required?: boolean; label?: string }) {
   const { t } = useI18n();
   const [show, setShow] = useState(false);
   const id = useId();
@@ -36,7 +36,7 @@ export function PasswordField({ value, onChange, placeholder, autoComplete = "ne
   return (
     <div>
       <div className="relative">
-        <input id={id} type={show ? "text" : "password"} autoComplete={autoComplete} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} aria-label={placeholder} aria-describedby={meter ? `${id}-m` : undefined} className="!pr-12" />
+        <input id={id} type={show ? "text" : "password"} autoComplete={autoComplete} required={required} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} aria-label={label ?? placeholder} aria-describedby={meter ? `${id}-m` : undefined} className={`${className} !pr-12`} />
         <button type="button" onClick={() => setShow((s) => !s)} aria-label={show ? t("onb2.pw.hide") : t("onb2.pw.show")} aria-pressed={show} className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-muted hover:text-fg">
           {show ? <EyeOff size={18} strokeWidth={1.5} aria-hidden="true" /> : <Eye size={18} strokeWidth={1.5} aria-hidden="true" />}
         </button>

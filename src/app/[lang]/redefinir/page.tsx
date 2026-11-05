@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PasswordField } from "@/components/PasswordField";
 import { useState, type FormEvent } from "react";
 import { LangSwitch, Wordmark } from "@/components/ui";
 import { useI18n } from "@/i18n/provider";
@@ -48,8 +49,8 @@ export default function Reset() {
           <>
             <p className="mt-3 text-muted">{t("reset.text")}</p>
             <form onSubmit={submit} className="mt-8 flex flex-col gap-3">
-              <input type="password" autoComplete="new-password" required value={pw} onChange={(e) => setPw(e.target.value)} placeholder={t("acct.security.next")} aria-label={t("acct.security.next")} />
-              <input type="password" autoComplete="new-password" required value={cf} onChange={(e) => setCf(e.target.value)} placeholder={t("acct.security.confirm")} aria-label={t("acct.security.confirm")} />
+              <PasswordField autoComplete="new-password" required value={pw} onChange={setPw} placeholder={t("acct.security.next")} />
+              <PasswordField meter={false} autoComplete="new-password" required value={cf} onChange={setCf} placeholder={t("acct.security.confirm")} />
               {error && <p role="alert" className="text-[14px] text-ember">{error}</p>}
               <button type="submit" disabled={busy} className="btn btn-primary mt-2 w-full disabled:opacity-50">{t("reset.save")}</button>
             </form>

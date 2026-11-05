@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PasswordField } from "@/components/PasswordField";
 import { LegalFooter } from "@/components/LegalBits";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
@@ -47,7 +48,7 @@ export default function Login() {
         <p className="mt-3 text-muted">{t("auth.text")}</p>
         <form onSubmit={submit} className="mt-8 flex flex-col gap-3">
           <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("onb.email")} aria-label={t("onb.email")} />
-          <input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t("auth.password")} aria-label={t("auth.password")} />
+          <PasswordField meter={false} autoComplete="current-password" required value={password} onChange={setPassword} placeholder={t("auth.password")} />
           {error && <p role="alert" className="text-[14px] text-ember">{error}</p>}
           <button type="submit" disabled={busy} className="btn btn-primary mt-2 w-full disabled:opacity-50">{busy ? t("common.loading") : t("auth.submit")}</button>
           <Link href={href("/esqueci")} className="mt-1 text-center text-[13px] text-muted underline underline-offset-4">{t("acct.security.forgot")}</Link>

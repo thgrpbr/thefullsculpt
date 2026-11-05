@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { PasswordField } from "@/components/PasswordField";
 import { useState, type ReactNode } from "react";
 import { Check, Laptop, Smartphone } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
@@ -36,7 +37,7 @@ function Field({ label, value, onChange, type = "text", disabled, placeholder, a
   return (
     <label className="flex items-center gap-4 px-5 py-3.5">
       <span className="w-[34%] max-w-[150px] shrink-0 text-[14px] text-muted">{label}</span>
-      <input type={type} value={value} onChange={(e) => onChange?.(e.target.value)} disabled={disabled} placeholder={placeholder} autoComplete={autoComplete} inputMode={inputMode} maxLength={max} className={`${bare} ${disabled ? "text-muted" : ""}`} />
+      {type === "password" ? <div className="min-w-0 flex-1"><PasswordField meter={false} label={label} value={value} onChange={(v) => onChange?.(v)} autoComplete={autoComplete} className={bare} /></div> : <input type={type} value={value} onChange={(e) => onChange?.(e.target.value)} disabled={disabled} placeholder={placeholder} autoComplete={autoComplete} inputMode={inputMode} maxLength={max} className={`${bare} ${disabled ? "text-muted" : ""}`} />}
     </label>
   );
 }

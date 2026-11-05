@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { PasswordField } from "@/components/PasswordField";
 import { ChevronRight, Download, LogOut, Trash2 } from "lucide-react";
 import { Group, PaymentsTab, ProfileTab, Row, SecurityTab } from "@/components/account/tabs";
 import ConsultCard from "@/components/ConsultCard";
@@ -122,7 +123,7 @@ export default function Profile() {
             {confirm ? (
               <div className="space-y-3 px-5 py-4">
                 <p className="text-[13px] text-ember">{t("privacy.confirm")}</p>
-                {isUser && <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder={t("auth.password")} aria-label={t("auth.password")} autoComplete="current-password" />}
+                {isUser && <PasswordField meter={false} value={pw} onChange={setPw} placeholder={t("auth.password")} autoComplete="current-password" />}
                 <div className="flex gap-3">
                   <button type="button" onClick={erase} className="btn btn-ember !h-11">{t("privacy.eraseNow")}</button>
                   <button type="button" onClick={() => setConfirm(false)} className="btn btn-ghost !h-11">{t("common.cancel")}</button>

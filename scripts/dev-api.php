@@ -27,7 +27,12 @@ if (PHP_SAPI === 'cli') {
     putenv("TFS_CONFIG=$cfgPath");
     TFS\Schema::install(TFS\DB::pdo($cfg));
     // usuário de teste para os testes de integração (senha fixa só no ambiente local de teste)
-    TFS\Seed::testUser(TFS\DB::pdo($cfg), $cfg, 'senha-de-teste-local-1');
+    $pdo0 = TFS\DB::pdo($cfg);
+    TFS\Seed::testUser($pdo0, $cfg, 'senha-de-teste-local-1');
+    $now0 = TFS\DB::now();
+    foreach ([['admin@teste.local', 'Admin Teste', 'admin'], ['prof@teste.local', 'Prof Teste', 'teacher']] as [$em, $nm, $role]) {
+        TFS\DB::run($pdo0, 'INSERT INTO users (email, password_hash, name, role, locale, created_at) VALUES (?, ?, ?, ?, ?, ?)', [$em, TFS\Auth::hash('senha-de-teste-local-1'), $nm, $role, 'pt', $now0]);
+    }
     echo "ok\n";
     exit(0);
 }

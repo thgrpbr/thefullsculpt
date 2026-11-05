@@ -114,6 +114,14 @@ const es: Dict = {
     coach: "Consulta en línea con profesor", coachText: "Pediste parametrizar tu entrenamiento con un profesor. La reserva llegará pronto.",
     language: "Idioma", reloadDemo: "Recargar datos de demostración",
   },
+  consult: {
+    title: "Consulta en línea con profesor", text: "Elige un horario para parametrizar tu entrenamiento dentro del método (hora de Brasilia).",
+    none: "No hay horarios disponibles ahora. Vuelve pronto.", book: "Reservar", mine: "Tus consultas", cancel: "Cancelar", join: "Entrar a la llamada",
+    realOnly: "Disponible para cuentas reales.", paused: "Las reservas están en pausa por ahora.", teacher: "Profesor", noTeacher: "Profesor por definir",
+    status: { requested: "Esperando confirmación", confirmed: "Confirmada", done: "Realizada", canceled: "Cancelada", no_show: "No asistió" },
+    errors: { already_booked: "Ya tienes una consulta reservada.", slot_unavailable: "Ese horario acaba de ocuparse. Elige otro.", rate_limited: "Demasiados intentos. Espera unos minutos.", generic: "No pudimos completarlo. Inténtalo de nuevo." },
+    manage: "Panel de gestión", manageText: "Tienes acceso al área de gestión de la plataforma.",
+  },
   privacy: {
     error: "No pudimos completarlo. Inténtalo de nuevo.", wrongPassword: "Contraseña incorrecta.",
     title: "Privacidad y datos", text: "Tus datos de salud son sensibles. Tú controlas lo que se guarda.",

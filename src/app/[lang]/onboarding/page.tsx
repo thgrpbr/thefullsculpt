@@ -14,6 +14,17 @@ import { useHydrated, useStore } from "@/lib/store";
 const STEPS = ["welcome", "consent", "goal", "experience", "days", "body", "injuries", "parq", "equipment", "coaching", "analyzing", "result"] as const;
 type Step = (typeof STEPS)[number];
 
+/** Código de indicação de professor: ?ref= na URL ou guardado quando o visitante passou pela landing. */
+function readRef(): string | undefined {
+  try {
+    const fromUrl = new URLSearchParams(window.location.search).get("ref");
+    const code = (fromUrl || localStorage.getItem("tfs-ref") || "").trim();
+    return code || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function Title({ children, sub }: { children: string; sub?: string }) {
   return (
     <>
@@ -106,6 +117,7 @@ function Flow({ startAt }: { startAt: number }) {
             password,
             locale: lang,
             consents: { terms, health, marketing },
+            ref: readRef(),
           }),
         );
       } catch (e) {

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Activity, Box, Check, Gauge, Trophy, UsersRound, Video } from "lucide-react";
 import AnatomyPanel from "./AnatomyPanel";
 import { LangSwitch, Wordmark } from "./ui";
@@ -23,6 +23,16 @@ const DEMO_EXERCISES = ["squat", "hinge", "press"] as const;
 export default function Landing() {
   const { t, href, lang } = useI18n();
   const [ex, setEx] = useState<(typeof DEMO_EXERCISES)[number]>("squat");
+
+  useEffect(() => {
+    // indicação de professor: ?ref=CODIGO (guardado para o cadastro)
+    try {
+      const ref = new URLSearchParams(window.location.search).get("ref");
+      if (ref && /^[A-Za-z0-9]{3,24}$/.test(ref)) localStorage.setItem("tfs-ref", ref);
+    } catch {
+      /* armazenamento indisponível */
+    }
+  }, []);
 
   return (
     <div className="theme-light">

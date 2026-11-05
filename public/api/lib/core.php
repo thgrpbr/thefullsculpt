@@ -291,8 +291,8 @@ final class Auth
         $row = DB::one(
             $pdo,
             'SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id
-             WHERE s.token_hash = ? AND s.expires_at > ? AND u.deleted_at IS NULL',
-            [hash('sha256', $token), DB::now()],
+             WHERE s.token_hash = ? AND s.expires_at > ? AND u.deleted_at IS NULL AND u.status = ?',
+            [hash('sha256', $token), DB::now(), 'active'],
         );
         return $row;
     }

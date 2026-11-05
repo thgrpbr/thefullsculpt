@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CalendarClock, Download, LogOut, ShieldCheck, Trash2 } from "lucide-react";
+import { ChevronRight, Download, LogOut, ShieldCheck, Trash2 } from "lucide-react";
+import ConsultCard from "@/components/ConsultCard";
 import { LangSwitch } from "@/components/ui";
 import { useI18n } from "@/i18n/provider";
 import { api, ApiError } from "@/lib/api";
@@ -73,17 +74,17 @@ export default function Profile() {
         {s.sub !== "active" && <Link href={href("/assine")} className="btn btn-primary">{t("profile.subscribe")}</Link>}
       </section>
 
-      {s.answers.coaching && (
-        <section className="card mt-4 flex items-center justify-between gap-4 p-6" aria-label={t("profile.coach")}>
-          <div className="flex items-start gap-4">
-            <CalendarClock size={22} strokeWidth={1.4} className="mt-1 text-bronze" aria-hidden="true" />
-            <div>
-              <p className="font-display text-2xl">{t("profile.coach")}</p>
-              <p className="text-[13px] text-muted">{t("profile.coachText")}</p>
-            </div>
-          </div>
-          <span className="rounded-full border-[0.5px] border-line px-3 py-1 text-[11px] uppercase tracking-widest text-muted">{t("common.soon")}</span>
-        </section>
+      {s.role && s.role !== "student" && (
+        <Link href={href(s.role === "admin" ? "/admin" : "/professor")} className="card mt-4 flex items-center justify-between gap-4 p-6 transition-colors hover:bg-surface2">
+          <span><span className="font-display block text-2xl">{t("consult.manage")}</span><span className="text-[13px] text-muted">{t("consult.manageText")}</span></span>
+          <ChevronRight size={18} className="text-muted" aria-hidden="true" />
+        </Link>
+      )}
+
+      {isUser ? (
+        <ConsultCard />
+      ) : (
+        <section className="card mt-4 p-6"><p className="font-display text-2xl">{t("consult.title")}</p><p className="mt-1 text-[13px] text-muted">{t("consult.realOnly")}</p></section>
       )}
 
       <section className="card mt-4 flex items-center justify-between p-6" aria-label={t("profile.language")}>

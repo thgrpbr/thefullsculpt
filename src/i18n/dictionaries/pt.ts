@@ -112,6 +112,14 @@ const pt = {
     coach: "Consulta online com professor", coachText: "Você pediu para parametrizar seu treino com um professor. O agendamento chega em breve.",
     language: "Idioma", reloadDemo: "Recarregar dados de demonstração",
   },
+  consult: {
+    title: "Consulta online com professor", text: "Escolha um horário para parametrizar seu treino dentro do método (horário de Brasília).",
+    none: "Nenhum horário disponível agora. Volte em breve.", book: "Agendar", mine: "Suas consultas", cancel: "Cancelar", join: "Entrar na chamada",
+    realOnly: "Disponível para contas reais.", paused: "Os agendamentos estão pausados no momento.", teacher: "Professor", noTeacher: "Professor a definir",
+    status: { requested: "Aguardando confirmação", confirmed: "Confirmada", done: "Realizada", canceled: "Cancelada", no_show: "Faltou" },
+    errors: { already_booked: "Você já tem uma consulta marcada.", slot_unavailable: "Esse horário acabou de ser ocupado. Escolha outro.", rate_limited: "Muitas tentativas. Aguarde alguns minutos.", generic: "Não foi possível concluir. Tente novamente." },
+    manage: "Painel de gestão", manageText: "Você tem acesso à área de gestão da plataforma.",
+  },
   privacy: {
     error: "Não foi possível concluir. Tente novamente.", wrongPassword: "Senha incorreta.",
     title: "Privacidade e dados", text: "Seus dados de saúde são sensíveis. Você controla o que fica guardado.",

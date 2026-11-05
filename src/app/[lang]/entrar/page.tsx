@@ -24,8 +24,9 @@ export default function Login() {
     setBusy(true);
     setError("");
     try {
-      applyServer(await api<ServerState>("POST", "/auth/login", { email: email.trim(), password }));
-      router.push(href("/app"));
+      const sv = await api<ServerState>("POST", "/auth/login", { email: email.trim(), password });
+      applyServer(sv);
+      router.push(href(sv.profile.role === "admin" ? "/admin" : sv.profile.role === "teacher" ? "/professor" : "/app"));
     } catch (err) {
       const code = err instanceof ApiError ? err.code : "generic";
       setError(t(`auth.errors.${["invalid_credentials", "rate_limited", "network", "not_installed"].includes(code) ? code : "generic"}`));

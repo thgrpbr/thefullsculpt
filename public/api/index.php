@@ -2,13 +2,19 @@
 declare(strict_types=1);
 
 require __DIR__ . '/lib/core.php';
+require __DIR__ . '/lib/migrations.php';
+require __DIR__ . '/lib/util.php';
+require __DIR__ . '/lib/analytics.php';
+require __DIR__ . '/lib/demo.php';
 
 use TFS\Audit;
 use TFS\Auth;
 use TFS\Config;
 use TFS\Crypto;
 use TFS\DB;
+use TFS\Billing;
 use TFS\Game;
+use TFS\Migrator;
 use TFS\Http;
 use TFS\Rate;
 use TFS\State;
@@ -26,6 +32,7 @@ if ($cfg === null) {
     Http::fail(503, 'not_installed');
 }
 $pdo = DB::pdo($cfg);
+Migrator::run($pdo);
 Http::guardWrite(is_array($cfg['allowed_origins'] ?? null) ? $cfg['allowed_origins'] : []);
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -43,6 +50,16 @@ function requireUser(PDO $pdo, array $cfg): array
     return $u;
 }
 
+/** @param list<string> $roles @return array<string,mixed> */
+function requireRole(PDO $pdo, array $cfg, array $roles): array
+{
+    $u = requireUser($pdo, $cfg);
+    if (!in_array($u['role'], $roles, true)) {
+        Http::fail(403, 'forbidden');
+    }
+    return $u;
+}
+
 function str(mixed $v, int $min, int $max): string
 {
     if (!is_string($v)) {
@@ -54,6 +71,16 @@ function str(mixed $v, int $min, int $max): string
         Http::fail(422, 'invalid_input');
     }
     return $v;
+}
+
+if (str_starts_with($path, '/admin')) {
+    require __DIR__ . '/lib/routes/admin.php';
+}
+if (str_starts_with($path, '/teacher')) {
+    require __DIR__ . '/lib/routes/teacher.php';
+}
+if ($path === '/catalog' || str_starts_with($path, '/appointments')) {
+    require __DIR__ . '/lib/routes/student.php';
 }
 
 switch ("$method $path") {
@@ -79,15 +106,25 @@ switch ("$method $path") {
         if (($c['terms'] ?? false) !== true || ($c['health'] ?? false) !== true) {
             Http::fail(422, 'consent_required');
         }
-        $locale = in_array($b['locale'] ?? 'pt', ['pt', 'en', 'es'], true) ? $b['locale'] : 'pt';
+        $locale = in_array($b['locale'] ?? '', ['pt', 'en', 'es'], true) ? $b['locale'] : 'pt';
         if (DB::one($pdo, 'SELECT id FROM users WHERE email = ?', [$email])) {
             Http::fail(409, 'email_taken');
         }
         $now = DB::now();
+        $teacherId = null;
+        $source = 'organic';
+        $ref = strtoupper(trim((string) ($b['ref'] ?? '')));
+        if ($ref !== '' && preg_match('/^[A-Z0-9]{3,24}$/', $ref)) {
+            $tp = DB::one($pdo, "SELECT user_id FROM teacher_profiles WHERE code = ? AND status = 'active'", [$ref]);
+            if ($tp) {
+                $teacherId = (int) $tp['user_id'];
+                $source = 'ref:' . $ref;
+            }
+        }
         $pdo->beginTransaction();
         try {
-            DB::run($pdo, 'INSERT INTO users (email, password_hash, name, role, locale, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-                [$email, Auth::hash($password), $name, 'student', $locale, $now]);
+            DB::run($pdo, 'INSERT INTO users (email, password_hash, name, role, teacher_id, locale, created_at, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                [$email, Auth::hash($password), $name, 'student', $teacherId, $locale, $now, $source]);
             $uid = (int) $pdo->lastInsertId();
             DB::run($pdo, 'INSERT INTO user_stats (user_id, updated_at) VALUES (?, ?)', [$uid, $now]);
             foreach (['terms' => true, 'health' => true, 'marketing' => ($c['marketing'] ?? false) === true] as $type => $granted) {
@@ -121,6 +158,11 @@ switch ("$method $path") {
         if (password_needs_rehash((string) $user['password_hash'], $algo)) {
             DB::run($pdo, 'UPDATE users SET password_hash = ? WHERE id = ?', [Auth::hash($password), $user['id']]);
         }
+        if (($user['status'] ?? 'active') !== 'active') {
+            Audit::log($pdo, $cfg, (int) $user['id'], 'login_blocked');
+            Http::fail(403, 'account_suspended');
+        }
+        DB::run($pdo, 'UPDATE users SET last_login_at = ? WHERE id = ?', [DB::now(), $user['id']]);
         Audit::log($pdo, $cfg, (int) $user['id'], 'login_ok');
         Auth::start($pdo, $cfg, (int) $user['id']);
         Http::json(State::forUser($pdo, $cfg, $user));
@@ -244,6 +286,9 @@ switch ("$method $path") {
         $user = requireUser($pdo, $cfg);
         if (($cfg['allow_test_subscription'] ?? false) !== true) {
             Http::fail(403, 'forbidden');
+        }
+        if (!DB::one($pdo, "SELECT id FROM subscriptions WHERE user_id = ? AND status = 'active'", [$user['id']])) {
+            Billing::recordPayment($pdo, (int) $user['id'], (int) \TFS\Settings::all($pdo)['price_cents'], 'card', 'test');
         }
         DB::run($pdo, "UPDATE user_stats SET sub_status = 'active', updated_at = ? WHERE user_id = ?", [DB::now(), $user['id']]);
         Audit::log($pdo, $cfg, (int) $user['id'], 'subscription_test_activate');

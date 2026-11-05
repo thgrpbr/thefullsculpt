@@ -114,6 +114,14 @@ const en: Dict = {
     coach: "Online session with a coach", coachText: "You asked to set up your training with a coach. Scheduling is coming soon.",
     language: "Language", reloadDemo: "Reload demo data",
   },
+  consult: {
+    title: "Online session with a coach", text: "Pick a time to set up your training within the method (Brasília time).",
+    none: "No times available right now. Check back soon.", book: "Book", mine: "Your sessions", cancel: "Cancel", join: "Join the call",
+    realOnly: "Available for real accounts.", paused: "Booking is paused right now.", teacher: "Coach", noTeacher: "Coach to be assigned",
+    status: { requested: "Awaiting confirmation", confirmed: "Confirmed", done: "Completed", canceled: "Canceled", no_show: "No-show" },
+    errors: { already_booked: "You already have a session booked.", slot_unavailable: "That time was just taken. Pick another.", rate_limited: "Too many attempts. Please wait a few minutes.", generic: "We couldn't complete that. Please try again." },
+    manage: "Management panel", manageText: "You have access to the platform's management area.",
+  },
   privacy: {
     error: "We couldn't complete that. Please try again.", wrongPassword: "Incorrect password.",
     title: "Privacy and data", text: "Your health data is sensitive. You control what is kept.",

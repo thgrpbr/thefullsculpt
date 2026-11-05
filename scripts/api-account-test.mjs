@@ -40,6 +40,16 @@ class Client {
   }
 }
 const inbox = async () => (await fetch(INBOX)).json();
+// o servidor de e-mail falso pode registrar a mensagem um instante depois da resposta: espera até chegar
+const waitInbox = async (n, ms = 4000) => {
+  const t0 = Date.now();
+  let m = await inbox();
+  while (m.length < n && Date.now() - t0 < ms) {
+    await new Promise((r) => setTimeout(r, 100));
+    m = await inbox();
+  }
+  return m;
+};
 const clearInbox = async () => (await fetch(INBOX + "/clear")).json();
 const decode = (m) => Buffer.from((m.data.match(/base64\r\n\r\n([A-Za-z0-9+/=\r\n]+?)--/s)?.[1] ?? "").replace(/\s/g, ""), "base64").toString("utf8");
 
@@ -63,7 +73,7 @@ ok("porta fechada => erro de conexão", closed.json?.ok === false && /conectar/.
 await clearInbox();
 const good = await admin.call("POST", "/admin/smtp/test", { host: "127.0.0.1", port: SMTP_PORT, secure: "none", user: "mailer", password: "segredo-smtp-teste", from_email: "noreply@thefullsculpt.com.br", from_name: "THE FULL SCULPT", to: "dest@exemplo.com" });
 ok("teste com credenciais certas envia", good.json?.ok === true, JSON.stringify(good.json));
-let mails = await inbox();
+let mails = await waitInbox(1);
 ok("mensagem chegou ao servidor com remetente/destinatário", mails.length === 1 && mails[0].to.includes("dest@exemplo.com") && mails[0].from.includes("noreply@thefullsculpt.com.br"));
 ok("corpo em HTML/UTF-8 legível", /funcionando/.test(decode(mails[0])) || mails[0].data.includes("multipart/alternative"));
 const save = await admin.call("PUT", "/admin/smtp", { enabled: true, host: "127.0.0.1", port: SMTP_PORT, secure: "none", user: "mailer", password: "segredo-smtp-teste", from_email: "noreply@thefullsculpt.com.br", from_name: "THE FULL SCULPT", public_url: "https://thefullsculpt.com.br" });
@@ -83,7 +93,7 @@ await clearInbox();
 const reg = new Client();
 const email = `novo${Date.now()}@teste.local`;
 await reg.call("POST", "/auth/register", { name: "Nova Aluna", email, password: "uma-senha-bem-longa-123", consents: { terms: true, health: true, adult: true }, locale: "en" });
-mails = await inbox();
+mails = await waitInbox(1);
 const subj = (m) => Buffer.from(m.data.match(/Subject: =\?UTF-8\?B\?([^?]+)/)[1], "base64").toString();
 ok("cadastro envia e-mail de confirmação (idioma en)", mails.length === 1 && mails[0].to.includes(email) && /Confirm your email/.test(subj(mails[0])));
 const vtoken = decode(mails[0]).match(/verificar\/\?token=([a-f0-9]{64})/)?.[1];
@@ -91,7 +101,7 @@ ok("e-mail traz o link de confirmação", !!vtoken);
 ok("aluno novo começa com e-mail não confirmado", (await reg.call("GET", "/me")).json.profile.emailVerified === false);
 ok("assinar exige e-mail confirmado", (await reg.call("POST", "/subscription/activate")).json?.error === "email_not_verified");
 await clearInbox();
-ok("reenviar confirmação envia novo e-mail", (await reg.call("POST", "/auth/resend-verification")).status === 200 && (await inbox()).length === 1);
+ok("reenviar confirmação envia novo e-mail", (await reg.call("POST", "/auth/resend-verification")).status === 200 && (await waitInbox(1)).length === 1);
 ok("token de confirmação inválido => 400", (await anon("POST", "/auth/verify-email", { token: "0".repeat(64) })).status === 400);
 ok("confirma o e-mail pelo link", (await anon("POST", "/auth/verify-email", { token: vtoken })).status === 200 && (await reg.call("GET", "/me")).json.profile.emailVerified === true);
 ok("o mesmo link não vale duas vezes", (await anon("POST", "/auth/verify-email", { token: vtoken })).status === 400);
@@ -113,18 +123,18 @@ ok("pré-visualização de rascunho escapa HTML e dispensa o botão", pv2.json.h
 await clearInbox();
 const reg2 = new Client();
 await reg2.call("POST", "/auth/register", { name: "Paula Custom", email: `pc${Date.now()}@teste.local`, password: "uma-senha-bem-longa-123", consents: { terms: true, health: true, adult: true }, locale: "pt" });
-mails = await inbox();
+mails = await waitInbox(1);
 ok("cadastro usa o modelo editado", mails.length === 1 && /Valide seu cadastro, Paula/.test(subj(mails[0])) && decode(mails[0]).includes("Olá Paula"));
 await clearInbox();
-ok("envia e-mail de teste do modelo ao admin", (await admin.call("POST", "/admin/emails/reset/test", { lang: "pt" })).json?.ok === true && (await inbox()).length === 1);
+ok("envia e-mail de teste do modelo ao admin", (await admin.call("POST", "/admin/emails/reset/test", { lang: "pt" })).json?.ok === true && (await waitInbox(1)).length === 1);
 ok("restaura o texto padrão", (await admin.call("DELETE", "/admin/emails/verify/pt")).status === 200 && (await admin.call("GET", "/admin/emails")).json.items.find((i) => i.kind === "verify").langs.pt.custom === false);
 await clearInbox();
 ok("esqueci a senha responde igual para e-mail inexistente", (await anon("POST", "/auth/forgot", { email: "ninguem@teste.local" })).status === 200 && (await inbox()).length === 0);
 async function anon(m, p, b) {
   return new Client().call(m, p, b);
 }
-ok("esqueci a senha envia link", (await anon("POST", "/auth/forgot", { email, locale: "es" })).status === 200 && (await inbox()).length === 1);
-const mail = (await inbox())[0];
+ok("esqueci a senha envia link", (await anon("POST", "/auth/forgot", { email, locale: "es" })).status === 200 && (await waitInbox(1)).length === 1);
+const mail = (await waitInbox(1))[0];
 const link = decode(mail).match(/redefinir\/\?token=([a-f0-9]{64})/) ?? mail.data.match(/token=([a-f0-9]{64})/);
 const token = link?.[1] ?? (Buffer.from(mail.data.replace(/\s/g, ""), "utf8").toString().match(/([a-f0-9]{64})/) ?? [])[1];
 ok("link de redefinição presente no e-mail", !!token && /^[a-f0-9]{64}$/.test(token), mail.data.slice(0, 200));

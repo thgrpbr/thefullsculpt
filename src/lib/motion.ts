@@ -75,6 +75,8 @@ export interface MotionDef {
   video?: VideoRef | null;
   /** músculos ativados neste exercício (null/ausente = usa a lista do exercício) */
   muscles?: MuscleMap | null;
+  /** false = só aparecem os músculos ativados (os demais ficam ocultos) */
+  showInactive?: boolean;
   lengths: Lengths;
   keys: Key[];
   limits: Record<JointAngle, [number, number]>;

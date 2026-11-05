@@ -309,6 +309,11 @@ export function MusclesPanel({ def, setDef, fromExercise, brush, setBrush, setHi
         <p className="mt-3 text-[12px] text-muted">{count("primary")} principal(is) · {count("secondary")} auxiliar(es) · {count("stabilizer")} estabilizador(es){edited ? "" : " — lista atual do exercício (ainda sem edição)"}</p>
       </Group>
 
+      <label className="flex items-start gap-2 rounded-2xl border-[0.5px] border-line px-4 py-3 text-[13px]">
+        <input type="checkbox" className="mt-0.5" checked={def.showInactive === false} onChange={(e) => setDef((x) => ({ ...x, showInactive: e.target.checked ? false : true }))} />
+        <span>Mostrar <b className="font-medium">somente os músculos ativados</b> (os demais ficam ocultos no 3D e no app)</span>
+      </label>
+
       {REGIONS.map(([region, ids]) => (
         <Group key={region} title={region}>
           <div className="space-y-3">

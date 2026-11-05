@@ -103,6 +103,10 @@ ok("salva músculos com papel, intensidade e fase", sm.status === 200 && gm.json
 ok("o app recebe os músculos junto do movimento", (await anon.call("GET", "/motions")).json.rigs[slug].muscles.abs.role === "secondary");
 const exs = (await admin.call("GET", "/admin/exercises")).json.rows.find((e) => e.slug === slug);
 ok("a lista do exercício (Método) é atualizada com os papéis editados", exs.primary_m === "calves" && exs.secondary_m === "abs" && exs.stabilizers_m === "traps", JSON.stringify([exs.primary_m, exs.secondary_m, exs.stabilizers_m]));
+const hid = await admin.call("PUT", `/admin/studio/${slug}`, { def: def({ muscles: { quads: { role: "primary", level: 100, timing: "hold" } }, showInactive: false }) });
+ok("salva a opção de mostrar só os músculos ativados", hid.status === 200 && (await anon.call("GET", "/motions")).json.rigs[slug].showInactive === false);
+ok("por padrão mostra todos os músculos", (await admin.call("PUT", `/admin/studio/${slug}`, { def: def() })).status === 200 && (await anon.call("GET", "/motions")).json.rigs[slug].showInactive === true);
+await admin.call("PUT", `/admin/studio/${slug}`, { def: mus({ calves: { role: "primary", level: 90, timing: "rise" }, abs: { role: "secondary", level: 55, timing: "hold" }, traps: { role: "stabilizer", level: 25, timing: "fall" } }), note: "músculos" });
 ok("o detalhe do Estúdio traz as listas do exercício", gm.json.primary_m === "calves" && gm.json.secondary_m === "abs");
 ok("rig sem músculos (null) não mexe nas listas", (await admin.call("PUT", `/admin/studio/${slug}`, { def: def() })).status === 200 && (await admin.call("GET", "/admin/exercises")).json.rows.find((e) => e.slug === slug).primary_m === "calves");
 await admin.call("DELETE", `/admin/studio/${slug}`);

@@ -122,7 +122,7 @@ $cleanDef = static function (mixed $d): array {
             $muscles[$id] = ['role' => $a['role'], 'level' => (int) $num($a['level'] ?? 100, 0, 100), 'timing' => $a['timing'] ?? 'hold'];
         }
     }
-    return ['v' => 1, 'video' => $video, 'muscles' => $muscles, 'lengths' => $lengths, 'keys' => $outKeys, 'limits' => $limits, 'checks' => $checks, 'repSeconds' => $num($d['repSeconds'] ?? 4, 1.5, 12)];
+    return ['v' => 1, 'video' => $video, 'muscles' => $muscles, 'showInactive' => ($d['showInactive'] ?? true) !== false, 'lengths' => $lengths, 'keys' => $outKeys, 'limits' => $limits, 'checks' => $checks, 'repSeconds' => $num($d['repSeconds'] ?? 4, 1.5, 12)];
 };
 
 if ($route === 'GET /admin/studio') {

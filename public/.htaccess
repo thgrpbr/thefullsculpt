@@ -5,11 +5,9 @@ DirectoryIndex index.html
 <IfModule mod_rewrite.c>
 RewriteEngine On
 
-# Força HTTPS e domínio com www
-RewriteCond %{HTTPS} off [OR]
-RewriteCond %{HTTP_HOST} !^www\. [NC]
-RewriteCond %{HTTP_HOST} ^(?:www\.)?(thefullsculpt\.com\.br)$ [NC]
-RewriteRule ^ https://www.%1%{REQUEST_URI} [L,R=301]
+# Força HTTPS (domínio principal: thefullsculpt.com.br, sem www)
+RewriteCond %{HTTPS} off
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 </IfModule>
 
 # Bloqueia arquivos sensíveis

@@ -4,7 +4,7 @@ const pt = {
     the: "THE", back: "Voltar", continue: "Continuar", cancel: "Cancelar", yes: "Sim", no: "Não",
     soon: "Em breve", loading: "Carregando…", demo: "Dados de demonstração", optional: "opcional", locked: "Bloqueado", join: "Entrar",
   },
-  nav: { today: "Hoje", method: "Método", progress: "Progresso", challenges: "Desafios", profile: "Perfil" },
+  nav: { today: "Hoje", method: "Método", progress: "Progresso", challenges: "Desafios", profile: "Perfil", logout: "Sair" },
   level: { basic: "Básico", intermediate: "Intermediário", advanced: "Avançado" },
   intensity: { light: "Leves", moderate: "Moderados", intense: "Intensos" },
   phase: { label: "Fase {n}", state: { done: "Concluída", current: "Atual", next: "Próxima", locked: "Bloqueada" } },

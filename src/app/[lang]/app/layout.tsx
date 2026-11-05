@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { ChartNoAxesColumn, House, Layers, Trophy, User } from "lucide-react";
+import { ChartNoAxesColumn, House, Layers, LogOut, Trophy, User } from "lucide-react";
 import { LangSwitch, Wordmark } from "@/components/ui";
 import { useI18n } from "@/i18n/provider";
 import { api, ApiError, type ServerState } from "@/lib/api";
@@ -20,6 +20,12 @@ const NAV = [
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { t, href } = useI18n();
   const pathname = usePathname() ?? "";
+  const router = useRouter();
+  const logout = useStore((s) => s.logout);
+  const signOut = async () => {
+    await logout();
+    router.replace(href("/entrar"));
+  };
   const hydrated = useHydrated();
   const assignment = useStore((s) => s.assignment);
   const isDemo = useStore((s) => s.isDemo);
@@ -86,6 +92,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                   </Link>
                 );
               })}
+              <button type="button" onClick={signOut} className="flex w-[64px] flex-col items-center gap-1 rounded-2xl py-3 text-[10px] tracking-wide text-muted transition-colors hover:text-fg">
+                <LogOut size={20} strokeWidth={1.5} aria-hidden="true" />
+                {t("nav.logout")}
+              </button>
             </nav>
             <LangSwitch vertical />
           </aside>
@@ -106,6 +116,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 </Link>
               );
             })}
+            <button type="button" onClick={signOut} className="flex flex-1 flex-col items-center gap-1 py-1.5 text-[10px] text-muted">
+              <LogOut size={21} strokeWidth={1.4} aria-hidden="true" />
+              {t("nav.logout")}
+            </button>
           </nav>
         </>
       )}

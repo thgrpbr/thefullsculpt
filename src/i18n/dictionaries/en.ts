@@ -6,7 +6,7 @@ const en: Dict = {
     the: "THE", back: "Back", continue: "Continue", cancel: "Cancel", yes: "Yes", no: "No",
     soon: "Soon", loading: "Loading…", demo: "Demo data", optional: "optional", locked: "Locked", join: "Join",
   },
-  nav: { today: "Today", method: "Method", progress: "Progress", challenges: "Challenges", profile: "Profile" },
+  nav: { today: "Today", method: "Method", progress: "Progress", challenges: "Challenges", profile: "Profile", logout: "Log out" },
   level: { basic: "Basic", intermediate: "Intermediate", advanced: "Advanced" },
   intensity: { light: "Light", moderate: "Moderate", intense: "Intense" },
   phase: { label: "Phase {n}", state: { done: "Completed", current: "Current", next: "Next", locked: "Locked" } },

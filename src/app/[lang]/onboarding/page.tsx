@@ -199,12 +199,12 @@ function Flow({ isUser }: { isUser: boolean }) {
   const parqDone = PARQ.every((q) => answers.parq[q] !== undefined);
 
   const canNext: Record<Step, boolean> = {
-    welcome: name.trim().length > 1 && emailOk && checkPassword(password).ok && password.toLowerCase() !== email.trim().toLowerCase(),
+    welcome: name.trim().length > 1 && emailOk && checkPassword(password).ok && password.toLowerCase() !== email.trim().toLowerCase() && age !== null && age >= 18,
     consent: terms && health && adult,
     goal: answers.goals.length > 0,
     experience: !!answers.experience,
     days: !!answers.days,
-    body: age !== null && age >= 18,
+    body: true,
     injuries: true,
     parq: parqDone,
     equipment: answers.equipment.length > 0,
@@ -225,9 +225,11 @@ function Flow({ isUser }: { isUser: boolean }) {
             password,
             locale: lang,
             consents: { terms, health, adult, marketing },
+            birth,
             ref: readRef(),
           }),
         );
+        setAnswers({ birth, age: age ?? undefined }); // o estado do servidor ainda não tem a anamnese
       } catch (e) {
         const code = e instanceof ApiError ? e.code : "generic";
         if (code === "not_installed") {
@@ -284,6 +286,16 @@ function Flow({ isUser }: { isUser: boolean }) {
                   <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("onb.email")} aria-label={t("onb.email")} />
                   <PasswordField value={password} onChange={setPassword} placeholder={t("onb.password")} />
                   {password.length === 0 && <p className="text-[12px] text-muted">{t("onb2.pw.need")}</p>}
+                  <div className="rounded-[14px] border-[0.5px] border-line bg-surface px-[18px] py-3">
+                    <label htmlFor="birth" className="text-[12px] text-muted">{t("onb2.body.birth")}</label>
+                    <div className="flex items-center justify-between gap-3">
+                      <input id="birth" type="date" className="tfs-date" value={birth} min="1900-01-01" max={new Date().toISOString().slice(0, 10)} onChange={(e) => { setBirth(e.target.value); const a2 = ageFrom(e.target.value); setAnswers({ birth: e.target.value, age: a2 ?? undefined }); }} />
+                      {age !== null && !underage && <span className="whitespace-nowrap text-[14px] text-muted tabular-nums">{t("onb2.body.age", { n: age })}</span>}
+                    </div>
+                  </div>
+                  {birth !== "" && age === null && <p role="alert" className="text-[12px] text-ember">{t("onb2.body.invalid")}</p>}
+                  {underage && <p role="alert" className="text-[13px] text-ember">{t("onb2.body.minor")}</p>}
+                  {birth === "" && <p className="text-[12px] text-muted">{t("onb2.birthHint")}</p>}
                   {draftNote && <p className="rounded-xl bg-surface2 px-4 py-3 text-[12px] text-muted" role="status">{t("onb2.draft")}</p>}
                 </div>
               </>
@@ -340,20 +352,6 @@ function Flow({ isUser }: { isUser: boolean }) {
                 <Title sub={t("onb2.body.text")}>{t("onb2.body.title")}</Title>
                 <div className="mt-6"><Silhouette height={answers.height} weight={answers.weight} /></div>
                 <div className="mt-6 flex flex-col gap-3">
-                  <div className="rounded-[22px] border-[0.5px] border-line bg-surface p-5">
-                    <label htmlFor="birth" className="text-[13px] text-muted">{t("onb2.body.birth")}<span className="text-ember"> *</span></label>
-                    <div className="mt-2 flex items-center justify-between gap-4">
-                      <input id="birth" type="date" className="tfs-date" value={birth} min="1900-01-01" max={new Date().toISOString().slice(0, 10)} onChange={(e) => { setBirth(e.target.value); const a2 = ageFrom(e.target.value); setAnswers({ birth: e.target.value, age: a2 ?? undefined }); }} />
-                      {age !== null && !underage && <span className="font-display whitespace-nowrap text-3xl tabular-nums">{t("onb2.body.age", { n: age })}</span>}
-                    </div>
-                    {birth !== "" && age === null && <p role="alert" className="mt-3 text-[12px] text-ember">{t("onb2.body.invalid")}</p>}
-                    {underage && (
-                      <div role="alert" className="mt-3 text-[13px] text-ember">
-                        <p>{t("onb2.body.minor")}</p>
-                        <button type="button" onClick={async () => { await useStore.getState().logout(); clearDraft(); location.assign(href("/")); }} className="mt-2 underline underline-offset-4">{t("onb2.body.logout")}</button>
-                      </div>
-                    )}
-                  </div>
                   <Metric label={t("onb2.body.height")} unit="cm" min={120} max={220} init={170} value={answers.height} onChange={(v) => setAnswers({ height: v })} hint={t("onb2.body.unset")} />
                   <Metric label={t("onb2.body.weight")} unit="kg" min={35} max={200} init={68} value={answers.weight} onChange={(v) => setAnswers({ weight: v })} hint={t("onb2.body.unset")} />
                 </div>
@@ -458,7 +456,7 @@ function Flow({ isUser }: { isUser: boolean }) {
                   {i > minStep && (
                     <button type="button" className="btn btn-ghost shrink-0 !px-6" onClick={() => setI((n) => Math.max(minStep, n - 1))}>{t("onb2.back")}</button>
                   )}
-                  <button type="button" className="btn btn-primary flex-1 disabled:opacity-35" disabled={!canNext[step] || busy || underage} onClick={next}>
+                  <button type="button" className="btn btn-primary flex-1 disabled:opacity-35" disabled={!canNext[step] || busy} onClick={next}>
                     {busy ? t("common.loading") : step === "coaching" ? t("onb.finish") : t("common.continue")}
                   </button>
                 </div>

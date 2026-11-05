@@ -217,8 +217,8 @@ const en: Dict = {
   },
   legalui: {
     cookieTitle: "Cookies and storage",
-    cookieText: "We only use strictly necessary cookies and storage (login, language, preferences and security). No advertising tracking.",
-    cookieMore: "Cookie policy", cookieOk: "Got it",
+    cookieText: "Essential cookies only, no advertising.",
+    cookieMore: "Learn more", cookieOk: "Got it",
     rights: "Your rights (LGPD)", dpo: "Data protection officer (DPO)", contact: "Contact", cnpj: "Company ID (CNPJ)",
     renew: "The subscription renews automatically every month until cancelled. You can cancel any time in your profile, with no penalty.",
     withdraw: "Right of withdrawal: full refund within 7 days of first purchase (Brazilian Consumer Code, art. 49).",
@@ -247,9 +247,10 @@ const en: Dict = {
       unavailable: "This document is under legal review and will be published before launch.",
       loading: "Loading document…", docTerms: "Terms of Use", docPrivacy: "Privacy Policy",
     },
+    birthHint: "We confirm you are 18 or older.",
     multi: "Choose as many as you like.", back: "Back",
     body: {
-      title: "Your body today", text: "Height and weight are optional. Your date of birth confirms you are 18 or older.",
+      title: "Your body today", text: "Optional. We use it to personalise your training.",
       birth: "Date of birth", age: "{n} years old", height: "Height", weight: "Weight", unset: "Tap to adjust",
       minor: "THE FULL SCULPT is for people aged 18 or over. We can't continue with this sign-up.",
       invalid: "Enter a valid date of birth.", logout: "Log out",

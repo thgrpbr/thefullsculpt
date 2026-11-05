@@ -215,8 +215,8 @@ const pt = {
   },
   legalui: {
     cookieTitle: "Cookies e armazenamento",
-    cookieText: "Usamos apenas cookies e armazenamento estritamente necessários (login, idioma, preferências e segurança). Não usamos rastreamento publicitário.",
-    cookieMore: "Política de cookies", cookieOk: "Entendi",
+    cookieText: "Usamos só cookies essenciais, sem publicidade.",
+    cookieMore: "Saiba mais", cookieOk: "Entendi",
     rights: "Seus direitos (LGPD)", dpo: "Encarregado de dados (DPO)", contact: "Contato", cnpj: "CNPJ",
     renew: "A assinatura renova automaticamente todo mês até ser cancelada. Você cancela quando quiser, no seu perfil, sem multa.",
     withdraw: "Direito de arrependimento: reembolso integral em até 7 dias após a primeira contratação (CDC, art. 49).",
@@ -245,9 +245,10 @@ const pt = {
       unavailable: "Este documento está em revisão jurídica e será publicado antes do lançamento.",
       loading: "Carregando documento…", docTerms: "Termos de Uso", docPrivacy: "Política de Privacidade",
     },
+    birthHint: "Confirmamos que você tem 18 anos ou mais.",
     multi: "Escolha quantas opções quiser.", back: "Voltar",
     body: {
-      title: "Seu corpo hoje", text: "Altura e peso são opcionais. A data de nascimento confirma que você tem 18 anos ou mais.",
+      title: "Seu corpo hoje", text: "Opcional. Usamos para personalizar o seu treino.",
       birth: "Data de nascimento", age: "{n} anos", height: "Altura", weight: "Peso", unset: "Toque para ajustar",
       minor: "O THE FULL SCULPT é para maiores de 18 anos. Não podemos continuar com este cadastro.",
       invalid: "Informe uma data de nascimento válida.", logout: "Sair",

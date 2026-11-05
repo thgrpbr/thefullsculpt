@@ -48,6 +48,7 @@ ok("POST sem X-Requested-With => 403", (await a.call("POST", "/auth/register", {
 ok("Origin de outro site => 403", (await a.call("POST", "/auth/register", { name: "A B", email, password, consents }, { headers: { Origin: "https://evil.example" } })).status === 403);
 ok("senha fraca => 422", (await a.call("POST", "/auth/register", { name: "A B", email, password: "curta", consents })).status === 422);
 ok("sem consentimento de saúde => 422", (await a.call("POST", "/auth/register", { name: "A B", email, password, consents: { terms: true, health: false, adult: true } })).status === 422);
+ok("cadastro de menor de 18 (data de nascimento) => 422 underage", (await a.call("POST", "/auth/register", { name: "A B", email: "menor" + email, password, consents, birth: new Date(Date.now() - 16 * 365.25 * 86400000).toISOString().slice(0, 10) })).json?.error === "underage");
 ok("rota inexistente => 404", (await a.call("GET", "/nada")).status === 404);
 
 console.log("Cadastro e sessão");

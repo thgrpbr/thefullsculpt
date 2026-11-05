@@ -2,7 +2,7 @@ import type { Answers } from "./anamnese";
 
 /**
  * Rascunho do cadastro: evita perder o que foi digitado se a página recarregar ou o botão voltar do navegador for usado.
- * NUNCA guarda a senha. Expira em 7 dias e é apagado ao concluir a anamnese.
+ * NUNCA guarda a senha. Expira em 1 hora e é apagado ao concluir a anamnese.
  */
 export interface Draft {
   step: string;
@@ -17,7 +17,7 @@ export interface Draft {
   at: number;
 }
 const KEY = "tfs-onb-draft";
-const TTL = 7 * 86400000;
+const TTL = 60 * 60 * 1000;
 
 export function loadDraft(): Draft | null {
   try {

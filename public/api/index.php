@@ -142,6 +142,15 @@ switch ("$method $path") {
         if (($c['terms'] ?? false) !== true || ($c['health'] ?? false) !== true || ($c['adult'] ?? false) !== true) {   // 18+ declarado (LGPD art. 14)
             Http::fail(422, 'consent_required');
         }
+        $birthIn = (string) ($b['birth'] ?? '');
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $birthIn, $bm) && checkdate((int) $bm[2], (int) $bm[3], (int) $bm[1])) {
+            $diff = (new \DateTimeImmutable($birthIn))->diff(new \DateTimeImmutable('today'));
+            if ($diff->invert || $diff->y < 18) {
+                Http::fail(422, 'underage');   // menores de 18 anos não criam conta (LGPD art. 14)
+            }
+        } elseif ($birthIn !== '') {
+            Http::fail(422, 'invalid_input');
+        }
         $locale = in_array($b['locale'] ?? '', ['pt', 'en', 'es'], true) ? $b['locale'] : 'pt';
         if (DB::one($pdo, 'SELECT id FROM users WHERE email = ?', [$email])) {
             Http::fail(409, 'email_taken');

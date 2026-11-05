@@ -1,17 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/i18n/provider";
 import { api } from "@/lib/api";
 
 const KEY = "tfs.notice.v1";
 export interface Company { legal_name: string; trade_name: string; cnpj: string; address: string; support_email: string; dpo_name: string; dpo_email: string }
 
-/** Aviso de cookies/armazenamento: só usamos o estritamente necessário, então é informativo (sem rastreadores a bloquear). */
+/**
+ * Aviso de cookies/armazenamento (só usamos o estritamente necessário, então é informativo).
+ * Faixa fina na base da página, que EMPURRA o conteúdo (reserva o próprio espaço) em vez de cobri-lo,
+ * e não aparece dentro do app/admin, onde há barras fixas de navegação.
+ */
 export function CookieNotice() {
   const { t, href } = useI18n();
+  const path = usePathname() ?? "";
   const [show, setShow] = useState(false);
+  const bar = useRef<HTMLDivElement>(null);
+  const inside = /\/(app|admin|professor)(\/|$)/.test(path);
+
   useEffect(() => {
     // lê o armazenamento só no navegador (depois da hidratação)
     const id = setTimeout(() => {
@@ -23,7 +32,23 @@ export function CookieNotice() {
     }, 0);
     return () => clearTimeout(id);
   }, []);
-  if (!show) return null;
+
+  const visible = show && !inside;
+  useEffect(() => {
+    // reserva no fim da página a altura da faixa, para que nada fique escondido atrás dela
+    const el = bar.current;
+    if (!visible || !el) return;
+    const apply = () => { document.body.style.paddingBottom = `${el.offsetHeight}px`; };
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.body.style.paddingBottom = "";
+    };
+  }, [visible]);
+
+  if (!visible) return null;
   const close = () => {
     try {
       localStorage.setItem(KEY, "1");
@@ -31,12 +56,13 @@ export function CookieNotice() {
     setShow(false);
   };
   return (
-    <div role="region" aria-label={t("legalui.cookieTitle")} className="fixed inset-x-3 bottom-3 z-[60] mx-auto max-w-xl rounded-2xl border-[0.5px] border-line bg-[var(--bg,#fff)] p-4 text-[13px] shadow-[0_8px_40px_rgba(0,0,0,.12)] sm:p-5">
-      <p className="font-medium">{t("legalui.cookieTitle")}</p>
-      <p className="mt-1 leading-relaxed text-muted">{t("legalui.cookieText")}</p>
-      <div className="mt-3 flex flex-wrap items-center gap-4">
-        <button type="button" onClick={close} className="btn btn-primary !h-9 !px-5 !text-[13px]">{t("legalui.cookieOk")}</button>
-        <Link href={href("/legal?doc=cookies")} className="text-bronze underline underline-offset-4">{t("legalui.cookieMore")}</Link>
+    <div ref={bar} role="region" aria-label={t("legalui.cookieTitle")} className="fixed inset-x-0 bottom-0 z-[60] border-t-[0.5px] border-line bg-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-x-4 gap-y-1 px-4 py-2.5 text-[12px] leading-snug sm:px-6">
+        <p className="min-w-0 flex-1 text-muted">
+          {t("legalui.cookieText")}{" "}
+          <Link href={href("/legal?doc=cookies")} className="whitespace-nowrap text-fg underline underline-offset-4">{t("legalui.cookieMore")}</Link>
+        </p>
+        <button type="button" onClick={close} className="shrink-0 rounded-full bg-fg px-4 py-1.5 text-[12px] text-bg">{t("legalui.cookieOk")}</button>
       </div>
     </div>
   );

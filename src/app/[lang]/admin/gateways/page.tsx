@@ -50,7 +50,7 @@ export default function GatewaysPage() {
 
   return (
     <div>
-      <PageHead eyebrow="Financeiro" title="Gateways de pagamento">
+      <PageHead eyebrow="Configurações" title="Pagamentos" sub="Gateways de pagamento, credenciais e webhooks. Preços, promoções e códigos ficam em Comercial > Planos e preços.">
         <p className="max-w-md text-[12px] text-muted">Conecte mais de um provedor. O padrão é usado primeiro no checkout; os demais ficam como alternativa (por prioridade).</p>
       </PageHead>
 

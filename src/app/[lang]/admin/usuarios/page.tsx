@@ -31,7 +31,7 @@ export default function Team() {
 
   return (
     <div>
-      <PageHead eyebrow="Acessos" title="Equipe e permissões">
+      <PageHead eyebrow="Configurações" title="Equipe e permissões" sub="Cadastre usuários do painel e defina, uma a uma, o que cada pessoa pode ver ou fazer.">
         <Btn variant="primary" size="md" onClick={() => setEditing("new")}><UserPlus size={14} aria-hidden="true" />Novo usuário</Btn>
       </PageHead>
       <Card pad={false} title="Usuários do painel" sub="Somente o administrador master cadastra usuários e define o que cada um pode ver ou fazer. Alterações de permissão encerram as sessões do usuário.">

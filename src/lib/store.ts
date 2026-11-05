@@ -30,6 +30,7 @@ interface State {
   mode: Mode;
   role: string | null;
   perms: string[];
+  profileLabel: string | null;
   emailVerified: boolean;
   profile: { name: string; email: string } | null;
   consents: Consents | null;
@@ -105,6 +106,7 @@ const initial = {
   mode: "anon" as Mode,
   role: null as string | null,
   perms: [] as string[],
+  profileLabel: null as string | null,
   emailVerified: true,
   profile: null,
   consents: null,
@@ -172,6 +174,7 @@ export const useStore = create<State>()(
           mode: "user",
           role: sv.profile.role,
           perms: sv.profile.permissions ?? [],
+          profileLabel: sv.profile.profileLabel ?? null,
           emailVerified: sv.profile.emailVerified ?? true,
           isDemo: false,
           profile: { name: sv.profile.name, email: sv.profile.email },

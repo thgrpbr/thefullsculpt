@@ -27,7 +27,7 @@ export function Toasts({ items }: { items: { id: number; msg: string; tone: "ok"
   return (
     <div className="pointer-events-none fixed bottom-4 right-4 z-[80] flex flex-col gap-2" role="status" aria-live="polite">
       {items.map((t) => (
-        <div key={t.id} className={`rounded-xl px-4 py-3 text-[13px] shadow-lg ${t.tone === "bad" ? "bg-ember text-white" : "bg-fg text-bg"}`}>{t.msg}</div>
+        <div key={t.id} className={`flex max-w-[360px] items-center gap-2.5 rounded-xl px-4 py-3 text-[13px] shadow-lg ${t.tone === "bad" ? "bg-ember text-white" : "bg-fg text-bg"}`}><span aria-hidden="true" className="text-[14px]">{t.tone === "bad" ? "⚠" : "✓"}</span>{t.msg}</div>
       ))}
     </div>
   );
@@ -47,12 +47,12 @@ export function useToasts() {
 
 export function Card({ title, sub, action, children, className = "", pad = true }: { title?: string; sub?: string; action?: ReactNode; children: ReactNode; className?: string; pad?: boolean }) {
   return (
-    <section className={`card ${className}`} style={{ borderRadius: 16 }}>
+    <section className={`card shadow-[0_1px_2px_rgba(22,21,20,0.03)] ${className}`} style={{ borderRadius: 18 }}>
       {(title || action) && (
-        <header className="flex items-start justify-between gap-3 px-5 pt-4">
-          <div>
-            {title && <h2 className="text-[13px] font-medium">{title}</h2>}
-            {sub && <p className="mt-0.5 text-[11px] text-muted">{sub}</p>}
+        <header className="flex items-start justify-between gap-3 px-5 pt-[18px]">
+          <div className="min-w-0">
+            {title && <h2 className="text-[14px] font-medium leading-snug">{title}</h2>}
+            {sub && <p className="mt-1 text-[12px] leading-relaxed text-muted">{sub}</p>}
           </div>
           {action}
         </header>
@@ -104,7 +104,7 @@ export function Badge({ tone = "neutral", children }: { tone?: Tone; children: R
 export function Btn({ children, onClick, variant = "ghost", size = "sm", disabled, type = "button", title }: { children: ReactNode; onClick?: () => void; variant?: "primary" | "ghost" | "danger" | "ember"; size?: "sm" | "md"; disabled?: boolean; type?: "button" | "submit"; title?: string }) {
   const v = { primary: "bg-fg text-bg hover:opacity-85", ghost: "border-[0.5px] border-line hover:bg-surface2", danger: "border-[0.5px] border-ember/40 text-ember hover:bg-ember/10", ember: "bg-ember text-white hover:opacity-90" }[variant];
   return (
-    <button type={type} title={title} onClick={onClick} disabled={disabled} className={`inline-flex items-center justify-center gap-1.5 rounded-full transition-opacity disabled:opacity-40 ${size === "sm" ? "h-8 px-3.5 text-[12px]" : "h-10 px-5 text-[13px]"} ${v}`}>
+    <button type={type} title={title} onClick={onClick} disabled={disabled} className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full transition-[opacity,background-color,transform] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 ${size === "sm" ? "h-8 px-3.5 text-[12px]" : "h-10 px-5 text-[13px]"} ${v}`}>
       {children}
     </button>
   );
@@ -144,7 +144,7 @@ export function DataTable<T extends { id?: number | string }>({
     <div className="overflow-x-auto" aria-busy={loading}>
       <table className="w-full min-w-[640px] text-[12px]">
         <thead>
-          <tr className="border-b-[0.5px] border-line text-left text-[10px] uppercase tracking-[0.14em] text-muted">
+          <tr className="border-b-[0.5px] border-line bg-surface2/40 text-left text-[10px] uppercase tracking-[0.14em] text-muted">
             {cols.map((c) => (
               <th key={c.key} style={{ width: c.w }} className={`px-4 py-2.5 font-normal ${c.align === "right" ? "text-right" : c.align === "center" ? "text-center" : ""}`}>
                 {c.sort && onSort ? (
@@ -235,21 +235,21 @@ export function Modal({ open, onClose, title, children, width = 520 }: { open: b
 
 export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
   return (
-    <label className="block text-[11px] text-muted">
+    <label className="block text-[12px] text-muted">
       {label}
-      <div className="mt-1 text-[13px] text-fg">{children}</div>
-      {hint && <span className="mt-1 block text-[10px]">{hint}</span>}
+      <div className="mt-1.5 text-[13px] text-fg">{children}</div>
+      {hint && <span className="mt-1.5 block text-[11px] leading-snug">{hint}</span>}
     </label>
   );
 }
 
-export const inputCls = "h-10 w-full rounded-xl border-[0.5px] border-line bg-surface px-3 text-[13px] font-light text-fg outline-none focus:border-bronze";
+export const inputCls = "h-10 w-full rounded-xl border-[0.5px] border-line bg-surface px-3 text-[13px] font-light text-fg outline-none transition-shadow focus:border-bronze focus:ring-2 focus:ring-bronze/15";
 
 export function Tabs<T extends string>({ value, onChange, items }: { value: T; onChange: (v: T) => void; items: { value: T; label: string; count?: number }[] }) {
   return (
     <div role="tablist" className="flex gap-1 overflow-x-auto border-b-[0.5px] border-line">
       {items.map((t) => (
-        <button key={t.value} role="tab" aria-selected={t.value === value} type="button" onClick={() => onChange(t.value)} className={`-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-[12px] ${t.value === value ? "border-fg text-fg" : "border-transparent text-muted hover:text-fg"}`}>
+        <button key={t.value} role="tab" aria-selected={t.value === value} type="button" onClick={() => onChange(t.value)} className={`-mb-px whitespace-nowrap border-b-2 px-3.5 py-2.5 text-[13px] transition-colors ${t.value === value ? "border-fg text-fg" : "border-transparent text-muted hover:text-fg"}`}>
           {t.label}{t.count !== undefined && <span className="ml-1.5 text-[10px] text-muted">{t.count}</span>}
         </button>
       ))}
@@ -261,12 +261,13 @@ export function Toolbar({ children }: { children: ReactNode }) {
   return <div className="flex flex-wrap items-center gap-2 px-4 py-3">{children}</div>;
 }
 
-export function PageHead({ eyebrow, title, children }: { eyebrow: string; title: string; children?: ReactNode }) {
+export function PageHead({ eyebrow, title, sub, children }: { eyebrow: string; title: string; sub?: string; children?: ReactNode }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div>
+      <div className="min-w-0">
         <p className="eyebrow">{eyebrow}</p>
-        <h1 className="font-display mt-1 text-[40px] leading-none">{title}</h1>
+        <h1 className="font-display mt-1.5 text-[38px] leading-[1.05]">{title}</h1>
+        {sub && <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-muted">{sub}</p>}
       </div>
       <div className="flex flex-wrap items-center gap-2">{children}</div>
     </div>

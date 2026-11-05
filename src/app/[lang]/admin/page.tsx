@@ -63,7 +63,7 @@ export default function Overview() {
 
   return (
     <div>
-      <PageHead eyebrow="Visão geral" title="Painel da plataforma">
+      <PageHead eyebrow="Painel" title="Visão geral">
         {loading && <Spinner />}
         <Segmented<string> label="Período" value={String(range)} onChange={(v) => setRange(Number(v))} options={[{ value: "30", label: "30 dias" }, { value: "90", label: "90 dias" }, { value: "365", label: "12 meses" }]} />
       </PageHead>

@@ -58,7 +58,7 @@ export default function Consultas() {
 
   return (
     <div>
-      <PageHead eyebrow="Atendimento" title="Consultas online">
+      <PageHead eyebrow="Pessoas" title="Consultas online">
         {loading && <Spinner />}
         <div className="flex items-center gap-1">
           <Btn onClick={() => setWeek(addDays(week, -7))}><ChevronLeft size={14} aria-label="Semana anterior" /></Btn>

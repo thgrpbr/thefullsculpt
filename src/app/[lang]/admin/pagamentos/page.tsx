@@ -36,7 +36,7 @@ function Payments() {
   const [tab, setTab] = useState<"resumo" | "pagamentos" | "assinaturas" | "comissoes" | "repasses">(sp.get("tab") === "comissoes" ? "comissoes" : "resumo");
   return (
     <div>
-      <PageHead eyebrow="Financeiro" title="Pagamentos e comissões">
+      <PageHead eyebrow="Comercial" title="Pagamentos e repasses">
         <a href="/api/admin/export/payments.csv" className="inline-flex h-8 items-center gap-1.5 rounded-full border-[0.5px] border-line px-3.5 text-[12px] hover:bg-surface2"><Download size={13} aria-hidden="true" />Pagamentos CSV</a>
         <a href="/api/admin/export/commissions.csv" className="inline-flex h-8 items-center gap-1.5 rounded-full border-[0.5px] border-line px-3.5 text-[12px] hover:bg-surface2"><Download size={13} aria-hidden="true" />Comissões CSV</a>
       </PageHead>

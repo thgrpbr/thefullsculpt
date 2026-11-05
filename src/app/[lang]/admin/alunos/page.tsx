@@ -83,7 +83,7 @@ function Students() {
 
   return (
     <div>
-      <PageHead eyebrow="Gestão" title="Alunos">
+      <PageHead eyebrow="Pessoas" title="Alunos">
         <a href="/api/admin/export/students.csv" className="inline-flex h-8 items-center gap-1.5 rounded-full border-[0.5px] border-line px-3.5 text-[12px] hover:bg-surface2"><Download size={13} aria-hidden="true" />Exportar CSV</a>
       </PageHead>
       <Card pad={false}>

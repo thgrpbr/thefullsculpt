@@ -48,7 +48,7 @@ export default function Teachers() {
 
   return (
     <div>
-      <PageHead eyebrow="Gestão" title="Professores">
+      <PageHead eyebrow="Pessoas" title="Professores">
         {loading && <Spinner />}
         <Btn variant="primary" size="md" onClick={() => setCreating(true)}><Plus size={14} aria-hidden="true" />Novo professor</Btn>
       </PageHead>

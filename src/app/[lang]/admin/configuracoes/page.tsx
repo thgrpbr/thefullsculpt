@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { ERRORS, num, send, useApi } from "@/lib/admin";
 import { Badge, Btn, Card, Field, inputCls, KV, PageHead, Spinner, useAdmin } from "@/components/admin/ui";
+import { DatabaseCard, SmtpCard } from "@/components/admin/SystemSettings";
 
 interface Settings {
   price_cents: number;
@@ -30,6 +31,8 @@ export default function ConfigPage() {
         <Commissions s={data} onSaved={reload} />
         <Consults s={data} onSaved={reload} />
         <DemoData sys={sys.data} onChanged={sys.reload} />
+        <SmtpCard />
+        <DatabaseCard />
         <Card title="Sistema" sub="Informações técnicas do servidor" className="lg:col-span-2">
           <div className="grid gap-x-10 sm:grid-cols-2">
             <div>
@@ -66,17 +69,16 @@ function useSave(onSaved: () => void) {
 
 function Plan({ s, onSaved }: { s: Settings; onSaved: () => void }) {
   const [price, setPrice] = useState((s.price_cents / 100).toFixed(2).replace(".", ","));
-  const [free, setFree] = useState(s.free_lessons);
   const { err, save } = useSave(onSaved);
   const cents = Math.round(Number(price.replace(/\./g, "").replace(",", ".")) * 100);
   return (
     <Card title="Plano e preço" sub="Valor cobrado de novas assinaturas (as já existentes mantêm o preço contratado)">
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Mensalidade (R$)"><input className={inputCls} inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} /></Field>
-        <Field label="Aulas grátis por aluno" hint="Hoje a regra do app libera 1 aula."><select className={inputCls} value={free} onChange={(e) => setFree(Number(e.target.value))}>{[0, 1, 2, 3].map((n) => <option key={n} value={n}>{n}</option>)}</select></Field>
+        <Field label="Aula grátis" hint="A primeira aula da fase do perfil é grátis (regra fixa do app)."><input className={inputCls} value="1 aula" disabled readOnly /></Field>
       </div>
       {err && <p role="alert" className="mt-3 text-[12px] text-ember">{err}</p>}
-      <div className="mt-4"><Btn variant="primary" onClick={() => save({ price_cents: cents, free_lessons: free })}>Salvar plano</Btn></div>
+      <div className="mt-4"><Btn variant="primary" onClick={() => save({ price_cents: cents })}>Salvar plano</Btn></div>
     </Card>
   );
 }

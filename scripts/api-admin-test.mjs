@@ -56,7 +56,7 @@ ok("aluno => 403 no painel do professor", (await student.call("GET", "/teacher/o
 ok("admin => 403 no painel do professor", (await admin.call("GET", "/teacher/overview")).status === 403);
 ok("professor vê /teacher/overview", (await teacherC.call("GET", "/teacher/overview")).status === 200);
 const sys = await admin.call("GET", "/admin/system");
-ok("migração aplicou o esquema v2", sys.json?.schema === 2, JSON.stringify(sys.json));
+ok("migração aplicou o esquema v2+", sys.json?.schema >= 2, JSON.stringify(sys.json));
 
 console.log("Método e exercícios");
 const imp = await admin.call("POST", "/admin/method/import-default");

@@ -63,3 +63,7 @@ jobs:
           BASE=http://127.0.0.1:8081 DB="$RUNNER_TEMP/test.sqlite" node scripts/api-test.mjs
           php scripts/dev-api.php init "$TFS_CONFIG" "$RUNNER_TEMP/test.sqlite"
           BASE=http://127.0.0.1:8081 DB="$RUNNER_TEMP/test.sqlite" node scripts/api-admin-test.mjs
+          php scripts/dev-api.php init "$TFS_CONFIG" "$RUNNER_TEMP/test.sqlite"
+          node scripts/fake-smtp.mjs > "$RUNNER_TEMP/smtp.log" 2>&1 &
+          sleep 1
+          BASE=http://127.0.0.1:8081 DB="$RUNNER_TEMP/test.sqlite" node scripts/api-account-test.mjs

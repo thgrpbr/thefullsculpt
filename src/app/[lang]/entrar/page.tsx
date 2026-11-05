@@ -49,6 +49,7 @@ export default function Login() {
           <input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t("auth.password")} aria-label={t("auth.password")} />
           {error && <p role="alert" className="text-[14px] text-ember">{error}</p>}
           <button type="submit" disabled={busy} className="btn btn-primary mt-2 w-full disabled:opacity-50">{busy ? t("common.loading") : t("auth.submit")}</button>
+          <Link href={href("/esqueci")} className="mt-1 text-center text-[13px] text-muted underline underline-offset-4">{t("acct.security.forgot")}</Link>
         </form>
         <p className="mt-8 text-center text-[14px] text-muted">
           {t("auth.noAccount")} <Link href={href("/onboarding")} className="text-fg underline underline-offset-4">{t("auth.create")}</Link>

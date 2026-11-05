@@ -112,6 +112,42 @@ const pt = {
     coach: "Consulta online com professor", coachText: "Você pediu para parametrizar seu treino com um professor. O agendamento chega em breve.",
     language: "Idioma", reloadDemo: "Recarregar dados de demonstração",
   },
+  acct: {
+    title: "Sua conta", eyebrow: "Perfil",
+    tabs: { account: "Conta", billing: "Pagamentos", security: "Segurança", consult: "Consultas", privacy: "Privacidade" },
+    profile: {
+      title: "Seus dados", name: "Nome completo", email: "E-mail", emailNote: "O e-mail é o seu login e não pode ser alterado aqui.", phone: "Telefone",
+      address: "Endereço", zip: "CEP", street: "Rua", number: "Número", complement: "Complemento", district: "Bairro", city: "Cidade", state: "UF", country: "País",
+      language: "Idioma", save: "Salvar alterações", saved: "Alterações salvas.", since: "Membro desde {date}", sensitive: "Seu endereço é guardado criptografado.",
+    },
+    billing: {
+      plan: "Plano", active: "Ativo", canceled: "Cancelado", none: "Sem assinatura", perMonth: "{price}/mês", next: "Próxima cobrança", started: "Assinante desde",
+      method: "Meio de pagamento", card: "Cartão", pix: "Pix", cardNote: "Os dados do cartão são tratados com segurança pelo provedor de pagamento e nunca passam pelos nossos servidores.",
+      noCard: "Nenhum cartão salvo ainda", history: "Histórico de pagamentos", noHistory: "Nenhum pagamento ainda.", paid: "Pago", refunded: "Reembolsado", failed: "Falhou", pending: "Pendente",
+      total: "Total pago", cancel: "Cancelar assinatura", cancelAsk: "Cancelar sua assinatura? Você perde o acesso às aulas pagas.", cancelYes: "Sim, cancelar", keep: "Manter",
+      subscribe: "Assinar plano mensal", canceledOk: "Assinatura cancelada.", methodSaved: "Meio de pagamento atualizado.", testNote: "Ambiente de teste: as cobranças reais virão com o Stripe.",
+    },
+    security: {
+      password: "Senha", current: "Senha atual", next: "Nova senha", confirm: "Confirmar nova senha", change: "Alterar senha", changed: "Senha alterada. Os outros dispositivos foram desconectados.",
+      mismatch: "As senhas não conferem.", weak: "Use pelo menos 10 caracteres.", wrong: "Senha atual incorreta.", devices: "Dispositivos conectados", thisDevice: "Este dispositivo",
+      lastSeen: "Último acesso {when}", revoke: "Encerrar", revokeOthers: "Encerrar todas as outras sessões", revoked: "Sessão encerrada.", activity: "Atividade da conta",
+      noActivity: "Sem atividade recente.", ipNote: "Por privacidade, guardamos apenas um hash do seu endereço IP.", forgot: "Esqueci minha senha",
+      events: {
+        login_ok: "Login realizado", login_fail: "Tentativa de login falhou", register: "Conta criada", password_changed: "Senha alterada", password_reset: "Senha redefinida por e-mail",
+        profile_updated: "Dados atualizados", export: "Você exportou seus dados", anamnese_saved: "Anamnese salva", payment_method_changed: "Meio de pagamento alterado",
+        subscription_canceled_by_user: "Assinatura cancelada", session_revoked: "Sessão encerrada", appointment_requested: "Consulta solicitada", appointment_canceled: "Consulta cancelada",
+      },
+    },
+    errors: { generic: "Não foi possível concluir. Tente novamente.", rate_limited: "Muitas tentativas. Aguarde alguns minutos.", invalid_name: "Informe seu nome.", invalid_phone: "Telefone inválido.", invalid_address: "Confira os campos do endereço." },
+  },
+  forgot: {
+    title: "Esqueceu a senha?", text: "Informe seu e-mail e enviaremos um link para criar uma nova senha.", send: "Enviar link",
+    sent: "Se existir uma conta com esse e-mail, enviamos o link. Confira também a caixa de spam.", back: "Voltar ao login",
+  },
+  reset: {
+    title: "Nova senha", text: "Escolha uma senha forte, com pelo menos 10 caracteres.", save: "Salvar nova senha", done: "Senha alterada. Agora é só entrar.",
+    invalid: "Este link é inválido ou expirou. Peça um novo.", mismatch: "As senhas não conferem.", weak: "Use pelo menos 10 caracteres.",
+  },
   consult: {
     title: "Consulta online com professor", text: "Escolha um horário para parametrizar seu treino dentro do método (horário de Brasília).",
     none: "Nenhum horário disponível agora. Volte em breve.", book: "Agendar", mine: "Suas consultas", cancel: "Cancelar", join: "Entrar na chamada",

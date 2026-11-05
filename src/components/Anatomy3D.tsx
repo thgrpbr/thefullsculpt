@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, OrbitControls } from "@react-three/drei";
-import { useEffect, useRef, useSyncExternalStore, type MutableRefObject, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useSyncExternalStore, type MutableRefObject, type ReactNode } from "react";
 import * as THREE from "three";
 import { EXERCISES, muscleRole, type MuscleId, type MuscleRole } from "@/lib/exercises";
 import { REP_SECONDS, computePose, wave, type JointName, type Pose } from "@/lib/pose";
@@ -41,7 +41,7 @@ const LEG_Z = [-0.1, 0.1];
 const ARM_Z = [-0.2, 0.2];
 
 const ROLE_COLOR: Record<MuscleRole, string> = { primary: "#E2563B", secondary: "#C79A68", stabilizer: "#8C877E" };
-const IDLE = "#6b645c";
+const IDLE = "#7d4d45";
 const BONE = "#F6F3EE";
 const BRONZE = "#C79A68";
 
@@ -51,23 +51,61 @@ interface MuscleDef {
   t: number;
   off: number;
   zs: number[];
-  size: [number, number, number]; // [perp, along, z]
+  size: [number, number, number]; // [perp, along, z] (semi-eixos)
+  shape?: "fus" | "ball";
+  tilt?: number; // inclinação extra (rad) no plano do segmento
 }
 
 const MUSCLES: MuscleDef[] = [
-  { id: "quads", seg: "thigh", t: 0.5, off: 0.04, zs: LEG_Z, size: [0.05, 0.2, 0.055] },
-  { id: "hamstrings", seg: "thigh", t: 0.5, off: -0.04, zs: LEG_Z, size: [0.045, 0.19, 0.05] },
-  { id: "calves", seg: "shank", t: 0.28, off: -0.035, zs: LEG_Z, size: [0.04, 0.15, 0.04] },
-  { id: "glutes", seg: "torso", t: 0.97, off: -0.075, zs: [-0.07, 0.07], size: [0.07, 0.09, 0.08] },
-  { id: "abs", seg: "torso", t: 0.78, off: 0.08, zs: [0], size: [0.04, 0.14, 0.09] },
-  { id: "erector", seg: "torso", t: 0.62, off: -0.08, zs: [-0.04, 0.04], size: [0.035, 0.2, 0.04] },
-  { id: "lats", seg: "torso", t: 0.35, off: -0.08, zs: [-0.1, 0.1], size: [0.04, 0.15, 0.07] },
-  { id: "pecs", seg: "torso", t: 0.2, off: 0.09, zs: [-0.07, 0.07], size: [0.04, 0.07, 0.075] },
-  { id: "traps", seg: "torso", t: 0.04, off: -0.06, zs: [-0.05, 0.05], size: [0.05, 0.09, 0.07] },
-  { id: "deltoids", seg: "uarm", t: 0.12, off: 0, zs: ARM_Z, size: [0.055, 0.08, 0.055] },
-  { id: "biceps", seg: "uarm", t: 0.5, off: 0.035, zs: ARM_Z, size: [0.032, 0.11, 0.035] },
-  { id: "triceps", seg: "uarm", t: 0.5, off: -0.035, zs: ARM_Z, size: [0.032, 0.11, 0.035] },
+  // coxa: reto femoral + vasto lateral + vasto medial
+  { id: "quads", seg: "thigh", t: 0.46, off: 0.064, zs: LEG_Z, size: [0.032, 0.19, 0.036], shape: "fus" },
+  { id: "quads", seg: "thigh", t: 0.5, off: 0.05, zs: [-0.148, 0.148], size: [0.034, 0.18, 0.036], shape: "fus" },
+  { id: "quads", seg: "thigh", t: 0.7, off: 0.046, zs: [-0.056, 0.056], size: [0.036, 0.115, 0.032], shape: "fus" },
+  // posteriores: bíceps femoral + semitendíneo/semimembranáceo
+  { id: "hamstrings", seg: "thigh", t: 0.5, off: -0.062, zs: [-0.13, 0.13], size: [0.032, 0.18, 0.032], shape: "fus" },
+  { id: "hamstrings", seg: "thigh", t: 0.5, off: -0.062, zs: [-0.075, 0.075], size: [0.034, 0.18, 0.03], shape: "fus" },
+  // panturrilha: gastrocnêmio (duas cabeças) + sóleo
+  { id: "calves", seg: "shank", t: 0.24, off: -0.052, zs: [-0.128, 0.128], size: [0.036, 0.125, 0.032], shape: "fus" },
+  { id: "calves", seg: "shank", t: 0.24, off: -0.052, zs: [-0.072, 0.072], size: [0.036, 0.125, 0.032], shape: "fus" },
+  { id: "glutes", seg: "torso", t: 0.95, off: -0.082, zs: [-0.07, 0.07], size: [0.07, 0.1, 0.085], shape: "ball" },
+  // abdômen: reto abdominal em gomos
+  { id: "abs", seg: "torso", t: 0.6, off: 0.098, zs: [-0.032, 0.032], size: [0.02, 0.046, 0.034], shape: "ball" },
+  { id: "abs", seg: "torso", t: 0.72, off: 0.098, zs: [-0.032, 0.032], size: [0.02, 0.046, 0.034], shape: "ball" },
+  { id: "abs", seg: "torso", t: 0.84, off: 0.095, zs: [-0.032, 0.032], size: [0.02, 0.046, 0.034], shape: "ball" },
+  { id: "erector", seg: "torso", t: 0.64, off: -0.1, zs: [-0.04, 0.04], size: [0.03, 0.2, 0.034], shape: "fus" },
+  { id: "lats", seg: "torso", t: 0.38, off: -0.095, zs: [-0.105, 0.105], size: [0.03, 0.17, 0.085], shape: "fus" },
+  { id: "pecs", seg: "torso", t: 0.21, off: 0.108, zs: [-0.075, 0.075], size: [0.03, 0.075, 0.08], shape: "ball" },
+  { id: "traps", seg: "torso", t: 0.07, off: -0.085, zs: [-0.06, 0.06], size: [0.036, 0.1, 0.085], shape: "ball" },
+  { id: "deltoids", seg: "uarm", t: 0.1, off: 0, zs: ARM_Z, size: [0.058, 0.085, 0.06], shape: "ball" },
+  { id: "biceps", seg: "uarm", t: 0.52, off: 0.043, zs: ARM_Z, size: [0.032, 0.105, 0.034], shape: "fus" },
+  { id: "triceps", seg: "uarm", t: 0.5, off: -0.043, zs: ARM_Z, size: [0.034, 0.11, 0.038], shape: "fus" },
 ];
+
+/** Perfil fusiforme (ventre central, pontas afiladas) e esfera: geometrias compartilhadas. */
+const FUS_GEO = (() => {
+  const pts: THREE.Vector2[] = [];
+  for (let i = 0; i <= 18; i++) {
+    const u = i / 18;
+    pts.push(new THREE.Vector2(Math.max(0.001, Math.pow(Math.sin(Math.PI * u), 0.72)), -1 + 2 * u));
+  }
+  return new THREE.LatheGeometry(pts, 16);
+})();
+const BALL_GEO = new THREE.SphereGeometry(1, 20, 16);
+
+/** Corpo cônico (afunila) ao longo do eixo do segmento: [t (0=topo,1=base), raio]. */
+function taperGeometry(len: number, profile: [number, number][]) {
+  const pts = profile.map(([t, r]) => new THREE.Vector2(r, -len / 2 + t * len));
+  return new THREE.LatheGeometry(pts, 24);
+}
+const PROFILE: Record<string, [number, number][]> = {
+  thigh: [[0, 0.04], [0.04, 0.074], [0.14, 0.088], [0.35, 0.08], [0.65, 0.066], [0.9, 0.054], [1, 0.04]],
+  shank: [[0, 0.04], [0.05, 0.052], [0.22, 0.06], [0.45, 0.046], [0.8, 0.034], [1, 0.028]],
+  uarm: [[0, 0.03], [0.06, 0.05], [0.3, 0.047], [0.7, 0.04], [1, 0.034]],
+  farm: [[0, 0.034], [0.15, 0.042], [0.5, 0.036], [0.85, 0.028], [1, 0.024]],
+  torso: [[0, 0.045], [0.04, 0.07], [0.12, 0.1], [0.28, 0.108], [0.5, 0.092], [0.66, 0.084], [0.82, 0.096], [0.95, 0.1], [1, 0.06]],
+  neckseg: [[0, 0.034], [0.25, 0.04], [1, 0.05]],
+  foot: [[0, 0.034], [0.2, 0.04], [0.7, 0.032], [1, 0.02]],
+};
 
 /* ---------- Peças ancoradas num segmento ---------- */
 
@@ -121,28 +159,39 @@ function Ball({ r, color, opacity = 1, scale = [1, 1, 1], ghost = false }: { r: 
   );
 }
 
-function Skin({ poseRef }: { poseRef: PoseRef }) {
+function Taper({ seg, color, opacity = 1, scaleZ = 1, ghost = false }: { seg: Seg; color: string; opacity?: number; scaleZ?: number; ghost?: boolean }) {
+  const geo = useMemo(() => taperGeometry(SEG_LEN[seg], PROFILE[seg]), [seg]);
+  return (
+    <mesh geometry={geo} scale={[1, 1, scaleZ]}>
+      <meshStandardMaterial color={color} transparent={opacity < 1} opacity={opacity} depthWrite={!ghost} roughness={0.7} metalness={0.02} />
+    </mesh>
+  );
+}
+
+function Skin({ poseRef, o = 0.3 }: { poseRef: PoseRef; o?: number }) {
   const c = "#d8d2c8";
-  const o = 0.3;
   return (
     <>
       {LEG_Z.map((z) => (
         <group key={`l${z}`}>
-          <Anchored poseRef={poseRef} seg="thigh" z={z}><Capsule seg="thigh" r={0.075} color={c} opacity={o} ghost /></Anchored>
-          <Anchored poseRef={poseRef} seg="shank" z={z}><Capsule seg="shank" r={0.055} color={c} opacity={o} ghost /></Anchored>
-          <Anchored poseRef={poseRef} seg="foot" z={z}><Capsule seg="foot" r={0.035} color={c} opacity={o} ghost /></Anchored>
+          <Anchored poseRef={poseRef} seg="thigh" z={z}><Taper seg="thigh" color={c} opacity={o} ghost /></Anchored>
+          <Anchored poseRef={poseRef} seg="shank" z={z}><Taper seg="shank" color={c} opacity={o} ghost /></Anchored>
+          <Anchored poseRef={poseRef} seg="foot" z={z}><Taper seg="foot" color={c} opacity={o} scaleZ={1.25} ghost /></Anchored>
         </group>
       ))}
       {ARM_Z.map((z) => (
         <group key={`a${z}`}>
-          <Anchored poseRef={poseRef} seg="uarm" z={z}><Capsule seg="uarm" r={0.045} color={c} opacity={o} ghost /></Anchored>
-          <Anchored poseRef={poseRef} seg="farm" z={z}><Capsule seg="farm" r={0.037} color={c} opacity={o} ghost /></Anchored>
+          <Anchored poseRef={poseRef} seg="uarm" z={z}><Taper seg="uarm" color={c} opacity={o} ghost /></Anchored>
+          <Anchored poseRef={poseRef} seg="farm" z={z}><Taper seg="farm" color={c} opacity={o} ghost /></Anchored>
+          <Anchored poseRef={poseRef} seg="farm" t={1.1} z={z}><Ball r={0.036} color={c} opacity={o} scale={[0.75, 1.35, 0.55]} ghost /></Anchored>
+          <Anchored poseRef={poseRef} seg="uarm" t={0} z={z}><Ball r={0.05} color={c} opacity={o} ghost /></Anchored>
         </group>
       ))}
-      <Anchored poseRef={poseRef} seg="torso"><Capsule seg="torso" r={0.11} color={c} opacity={o} scaleZ={1.45} ghost /></Anchored>
-      <Anchored poseRef={poseRef} seg="torso" t={1}><Ball r={0.11} color={c} opacity={o} scale={[1, 1, 1.35]} ghost /></Anchored>
-      <Anchored poseRef={poseRef} seg="neckseg"><Capsule seg="neckseg" r={0.04} color={c} opacity={o} ghost /></Anchored>
-      <Anchored poseRef={poseRef} seg="neckseg" t={0}><Ball r={0.1} color={c} opacity={o} ghost /></Anchored>
+      <Anchored poseRef={poseRef} seg="torso"><Taper seg="torso" color={c} opacity={o} scaleZ={1.62} ghost /></Anchored>
+      <Anchored poseRef={poseRef} seg="torso" t={0.02}><Ball r={0.09} color={c} opacity={o} scale={[0.9, 0.5, 2.1]} ghost /></Anchored>
+      <Anchored poseRef={poseRef} seg="torso" t={1}><Ball r={0.105} color={c} opacity={o} scale={[1, 0.8, 1.45]} ghost /></Anchored>
+      <Anchored poseRef={poseRef} seg="neckseg"><Taper seg="neckseg" color={c} opacity={o} ghost /></Anchored>
+      <Anchored poseRef={poseRef} seg="neckseg" t={-0.28}><Ball r={0.088} color={c} opacity={o} scale={[1, 1.22, 0.95]} ghost /></Anchored>
     </>
   );
 }
@@ -163,7 +212,21 @@ function Skeleton({ poseRef, ik }: { poseRef: PoseRef; ik: boolean }) {
     <>
       {bone("torso", 0, BONE, "spine")}
       {bone("neckseg", 0, BONE, "neck")}
-      <Anchored poseRef={poseRef} seg="neckseg" t={0}><Ball r={0.085} color={BONE} opacity={0.35} ghost /></Anchored>
+      <Anchored poseRef={poseRef} seg="neckseg" t={-0.28}><Ball r={0.088} color={BONE} opacity={0.3} scale={[1, 1.22, 0.95]} ghost /></Anchored>
+      {[0.16, 0.23, 0.3, 0.37, 0.44].map((t, i) => (
+        <Anchored key={`rib${i}`} poseRef={poseRef} seg="torso" t={t}>
+          <mesh rotation={[Math.PI / 2, 0, 0]} scale={[1, 1.55, 1]}>
+            <torusGeometry args={[0.092 - Math.abs(i - 1.5) * 0.004, 0.0065, 6, 24]} />
+            <meshStandardMaterial color={BONE} transparent opacity={0.8} />
+          </mesh>
+        </Anchored>
+      ))}
+      <Anchored poseRef={poseRef} seg="torso" t={0.97}>
+        <mesh rotation={[Math.PI / 2, 0, 0]} scale={[1, 1.5, 1]}>
+          <torusGeometry args={[0.08, 0.012, 6, 24]} />
+          <meshStandardMaterial color={BONE} transparent opacity={0.85} />
+        </mesh>
+      </Anchored>
       <Anchored poseRef={poseRef} seg="torso" t={0}>
         <mesh rotation={[Math.PI / 2, 0, 0]}><capsuleGeometry args={[0.012, 0.38, 4, 8]} /><meshStandardMaterial color={BONE} /></mesh>
       </Anchored>
@@ -205,15 +268,15 @@ function Muscles({
   const ex = EXERCISES[exerciseId];
   return (
     <>
-      {MUSCLES.map((m) => {
+      {MUSCLES.map((m, mi) => {
         const role = muscleRole(ex, m.id);
         if (layer !== "muscle" && !role) return null;
         const active = !!role;
         const color = role ? ROLE_COLOR[role] : IDLE;
-        const opacity = layer === "muscle" ? (active ? 0.95 : 0.35) : layer === "skin" ? 0.85 : 0.5;
+        const opacity = layer === "muscle" ? (active ? 0.95 : 0.6) : layer === "skin" ? 0.85 : 0.5;
         const isHover = hover === m.id;
         return m.zs.map((z) => (
-          <Anchored key={`${m.id}${z}`} poseRef={poseRef} seg={m.seg} t={m.t} off={m.off} z={z}>
+          <Anchored key={`${mi}-${z}`} poseRef={poseRef} seg={m.seg} t={m.t} off={m.off} z={z}>
             <mesh
               scale={m.size.map((s) => s * (isHover ? 1.14 : 1)) as [number, number, number]}
               onPointerOver={(e) => {
@@ -226,7 +289,7 @@ function Muscles({
                 document.body.style.cursor = "";
               }}
             >
-              <sphereGeometry args={[1, 18, 14]} />
+              <primitive object={m.shape === "ball" ? BALL_GEO : FUS_GEO} attach="geometry" />
               <meshStandardMaterial
                 color={color}
                 transparent
@@ -294,7 +357,7 @@ function Figure(props: Props) {
 
   return (
     <group position={[-0.06, 0, 0]}>
-      {layer === "skin" && <Skin poseRef={poseRef} />}
+      {(layer === "skin" || layer === "muscle") && <Skin poseRef={poseRef} o={layer === "skin" ? 0.3 : 0.14} />}
       {(layer === "skeleton" || showIK) && <Skeleton poseRef={poseRef} ik={showIK} />}
       <Muscles poseRef={poseRef} exerciseId={exerciseId} layer={layer} hover={hoverMuscle} onHover={onHover} />
       {showIK && <IKMarkers poseRef={poseRef} />}
@@ -303,11 +366,11 @@ function Figure(props: Props) {
 }
 
 const VIEWS: Record<ViewPreset, [number, number, number]> = {
-  side: [0.1, 0.95, 3.7],
-  front: [3.7, 0.95, 0.1],
-  angle: [2.6, 1.2, 2.8],
+  side: [0.1, 0.95, 4.4],
+  front: [4.4, 0.95, 0.1],
+  angle: [3.1, 1.25, 3.3],
 };
-const TARGET = new THREE.Vector3(0.05, 0.82, 0);
+const TARGET = new THREE.Vector3(0.05, 0.86, 0);
 
 function CameraRig({ view }: { view: ViewPreset }) {
   const { camera } = useThree();

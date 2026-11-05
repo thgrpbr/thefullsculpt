@@ -3,23 +3,28 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ChevronRight, Download, LogOut, ShieldCheck, Trash2 } from "lucide-react";
+import { ChevronRight, Download, LogOut, Trash2 } from "lucide-react";
+import { Group, PaymentsTab, ProfileTab, Row, SecurityTab } from "@/components/account/tabs";
 import ConsultCard from "@/components/ConsultCard";
 import { LangSwitch } from "@/components/ui";
 import { useI18n } from "@/i18n/provider";
 import { api, ApiError } from "@/lib/api";
 import { useStore } from "@/lib/store";
 
+type Tab = "account" | "billing" | "security" | "consult" | "privacy";
+
 export default function Profile() {
   const { t, href, lang } = useI18n();
   const router = useRouter();
   const s = useStore();
+  const [tab, setTab] = useState<Tab>("account");
   const [confirm, setConfirm] = useState(false);
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
   const isUser = s.mode === "user";
-
-  const fmt = (iso?: string) => (iso ? new Intl.DateTimeFormat(lang === "pt" ? "pt-BR" : lang, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso)) : "–");
+  const loc = lang === "pt" ? "pt-BR" : lang;
+  const fmt = (iso?: string) => (iso ? new Intl.DateTimeFormat(loc, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso)) : "–");
+  const initials = (s.profile?.name ?? "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
   async function exportData() {
     const { profile, consents, answers, assignment, sub, xp, streak, log } = s;
@@ -60,70 +65,85 @@ export default function Profile() {
     router.replace(href("/"));
   }
 
-  return (
-    <div className="mx-auto max-w-3xl px-5 pt-8 md:px-10 md:pt-12">
-      <p className="eyebrow">{t("profile.eyebrow")}</p>
-      <h1 className="font-display mt-2 text-5xl md:text-6xl">{s.profile?.name}</h1>
-      <p className="mt-1 text-muted">{s.profile?.email}</p>
+  const tabs: { id: Tab; label: string }[] = [
+    { id: "account", label: t("acct.tabs.account") },
+    { id: "billing", label: t("acct.tabs.billing") },
+    { id: "security", label: t("acct.tabs.security") },
+    { id: "consult", label: t("acct.tabs.consult") },
+    { id: "privacy", label: t("acct.tabs.privacy") },
+  ];
 
-      <section className="card mt-8 flex items-center justify-between gap-4 p-6" aria-label={t("profile.plan")}>
-        <div>
-          <p className="eyebrow">{t("profile.plan")}</p>
-          <p className="font-display mt-1 text-3xl">{s.sub === "active" ? t("profile.planActive") : t("profile.planFree")}</p>
+  return (
+    <div className="mx-auto max-w-2xl px-5 pb-6 pt-8 md:px-8 md:pt-12">
+      <header className="flex items-center gap-5">
+        <span className="font-display flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full bg-surface2 text-[28px] text-bronze" aria-hidden="true">{initials}</span>
+        <div className="min-w-0">
+          <p className="eyebrow">{t("acct.eyebrow")}</p>
+          <h1 className="font-display truncate text-4xl leading-tight md:text-5xl">{s.profile?.name}</h1>
+          <p className="truncate text-[14px] text-muted">{s.profile?.email}</p>
         </div>
-        {s.sub !== "active" && <Link href={href("/assine")} className="btn btn-primary">{t("profile.subscribe")}</Link>}
-      </section>
+      </header>
 
       {s.role && s.role !== "student" && (
-        <Link href={href(s.role === "admin" ? "/admin" : "/professor")} className="card mt-4 flex items-center justify-between gap-4 p-6 transition-colors hover:bg-surface2">
+        <Link href={href(s.role === "admin" ? "/admin" : "/professor")} className="mt-6 flex items-center justify-between gap-4 rounded-[20px] border-[0.5px] border-line bg-surface px-5 py-4 transition-colors hover:bg-surface2">
           <span><span className="font-display block text-2xl">{t("consult.manage")}</span><span className="text-[13px] text-muted">{t("consult.manageText")}</span></span>
           <ChevronRight size={18} className="text-muted" aria-hidden="true" />
         </Link>
       )}
 
-      {isUser ? (
-        <ConsultCard />
+      <nav className="-mx-5 mt-8 overflow-x-auto px-5 md:mx-0 md:px-0" aria-label={t("acct.title")}>
+        <div role="tablist" className="inline-flex rounded-full border-[0.5px] border-line bg-surface p-1">
+          {tabs.map((x) => (
+            <button key={x.id} role="tab" type="button" aria-selected={tab === x.id} onClick={() => setTab(x.id)} className={`whitespace-nowrap rounded-full px-4 py-2 text-[13px] transition-colors ${tab === x.id ? "bg-fg text-bg" : "text-muted hover:text-fg"}`}>{x.label}</button>
+          ))}
+        </div>
+      </nav>
+
+      {!isUser && tab !== "privacy" ? (
+        <Group><p className="px-5 py-10 text-center text-[14px] text-muted">{t("consult.realOnly")}</p></Group>
       ) : (
-        <section className="card mt-4 p-6"><p className="font-display text-2xl">{t("consult.title")}</p><p className="mt-1 text-[13px] text-muted">{t("consult.realOnly")}</p></section>
+        <>
+          {tab === "account" && <ProfileTab />}
+          {tab === "billing" && <PaymentsTab />}
+          {tab === "security" && <SecurityTab />}
+          {tab === "consult" && <ConsultCard />}
+        </>
       )}
 
-      <section className="card mt-4 flex items-center justify-between p-6" aria-label={t("profile.language")}>
-        <p className="font-display text-2xl">{t("profile.language")}</p>
-        <LangSwitch />
-      </section>
-
-      <section className="card mt-4 p-6" aria-label={t("privacy.title")}>
-        <div className="flex items-center gap-3">
-          <ShieldCheck size={20} strokeWidth={1.4} className="text-bronze" aria-hidden="true" />
-          <h2 className="font-display text-3xl">{t("privacy.title")}</h2>
+      {tab === "privacy" && (
+        <div>
+          <Group title={t("privacy.title")} footer={t("privacy.text")}>
+            <Row label={t("privacy.health")}>{s.consents?.health ? `${t("common.yes")} · ${fmt(s.consents.at)}` : t("common.no")}</Row>
+            <Row label={t("privacy.terms")}>{s.consents?.terms ? `${t("common.yes")} · ${fmt(s.consents.at)}` : t("common.no")}</Row>
+            <Row label={t("privacy.marketing")}>{s.consents?.marketing ? t("common.yes") : t("common.no")}</Row>
+          </Group>
+          <Group>
+            <button type="button" onClick={exportData} className="flex w-full items-center gap-3 px-5 py-3.5 text-left text-[15px] transition-colors hover:bg-surface2/60"><Download size={17} strokeWidth={1.4} className="text-muted" aria-hidden="true" />{t("privacy.export")}</button>
+            {confirm ? (
+              <div className="space-y-3 px-5 py-4">
+                <p className="text-[13px] text-ember">{t("privacy.confirm")}</p>
+                {isUser && <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder={t("auth.password")} aria-label={t("auth.password")} autoComplete="current-password" />}
+                <div className="flex gap-3">
+                  <button type="button" onClick={erase} className="btn btn-ember !h-11">{t("privacy.eraseNow")}</button>
+                  <button type="button" onClick={() => setConfirm(false)} className="btn btn-ghost !h-11">{t("common.cancel")}</button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setConfirm(true)} className="flex w-full items-center gap-3 px-5 py-3.5 text-left text-[15px] text-ember transition-colors hover:bg-surface2/60"><Trash2 size={17} strokeWidth={1.4} aria-hidden="true" />{t("privacy.erase")}</button>
+            )}
+          </Group>
+          {err && <p role="alert" className="mt-4 px-2 text-[14px] text-ember">{err}</p>}
         </div>
-        <p className="mt-2 text-[14px] text-muted">{t("privacy.text")}</p>
-        <dl className="mt-5 divide-y divide-line text-[14px]">
-          <div className="flex justify-between py-3"><dt>{t("privacy.health")}</dt><dd className="text-muted">{s.consents?.health ? `${t("common.yes")} · ${fmt(s.consents.at)}` : t("common.no")}</dd></div>
-          <div className="flex justify-between py-3"><dt>{t("privacy.terms")}</dt><dd className="text-muted">{s.consents?.terms ? `${t("common.yes")} · ${fmt(s.consents.at)}` : t("common.no")}</dd></div>
-          <div className="flex justify-between py-3"><dt>{t("privacy.marketing")}</dt><dd className="text-muted">{s.consents?.marketing ? t("common.yes") : t("common.no")}</dd></div>
-        </dl>
-        <div className="mt-5 flex flex-wrap gap-3">
-          <button type="button" onClick={exportData} className="btn btn-ghost"><Download size={16} aria-hidden="true" />{t("privacy.export")}</button>
-          {confirm ? (
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-[13px] text-ember">{t("privacy.confirm")}</span>
-              {isUser && <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder={t("auth.password")} aria-label={t("auth.password")} autoComplete="current-password" />}
-              <button type="button" onClick={erase} className="btn btn-ember !h-11">{t("privacy.eraseNow")}</button>
-              <button type="button" onClick={() => setConfirm(false)} className="btn btn-ghost !h-11">{t("common.cancel")}</button>
-            </div>
-          ) : (
-            <button type="button" onClick={() => setConfirm(true)} className="btn btn-ghost"><Trash2 size={16} aria-hidden="true" />{t("privacy.erase")}</button>
-          )}
-        </div>
-      </section>
+      )}
 
-      {err && <p role="alert" className="mt-4 text-[14px] text-ember">{err}</p>}
-
-      <div className="mt-6 flex flex-wrap items-center gap-6">
-        {isUser && <button type="button" onClick={signOut} className="btn btn-ghost"><LogOut size={16} aria-hidden="true" />{t("profile.logout")}</button>}
-        {!isUser && <button type="button" onClick={s.loadDemo} className="text-[12px] text-muted underline underline-offset-4">{t("profile.reloadDemo")}</button>}
-      </div>
+      <Group>
+        <div className="flex items-center justify-between px-5 py-3.5"><span className="text-[15px]">{t("profile.language")}</span><LangSwitch /></div>
+        {isUser ? (
+          <button type="button" onClick={signOut} className="flex w-full items-center gap-3 px-5 py-3.5 text-left text-[15px] transition-colors hover:bg-surface2/60"><LogOut size={17} strokeWidth={1.4} className="text-muted" aria-hidden="true" />{t("profile.logout")}</button>
+        ) : (
+          <button type="button" onClick={s.loadDemo} className="w-full px-5 py-3.5 text-left text-[13px] text-muted">{t("profile.reloadDemo")}</button>
+        )}
+      </Group>
     </div>
   );
 }

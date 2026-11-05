@@ -114,6 +114,42 @@ const en: Dict = {
     coach: "Online session with a coach", coachText: "You asked to set up your training with a coach. Scheduling is coming soon.",
     language: "Language", reloadDemo: "Reload demo data",
   },
+  acct: {
+    title: "Your account", eyebrow: "Profile",
+    tabs: { account: "Account", billing: "Payments", security: "Security", consult: "Sessions", privacy: "Privacy" },
+    profile: {
+      title: "Your details", name: "Full name", email: "Email", emailNote: "Your email is your login and can't be changed here.", phone: "Phone",
+      address: "Address", zip: "Postal code", street: "Street", number: "Number", complement: "Apartment / suite", district: "District", city: "City", state: "State", country: "Country",
+      language: "Language", save: "Save changes", saved: "Changes saved.", since: "Member since {date}", sensitive: "Your address is stored encrypted.",
+    },
+    billing: {
+      plan: "Plan", active: "Active", canceled: "Canceled", none: "No subscription", perMonth: "{price}/month", next: "Next charge", started: "Subscriber since",
+      method: "Payment method", card: "Card", pix: "Pix", cardNote: "Card details are handled securely by the payment provider and never pass through our servers.",
+      noCard: "No card saved yet", history: "Payment history", noHistory: "No payments yet.", paid: "Paid", refunded: "Refunded", failed: "Failed", pending: "Pending",
+      total: "Total paid", cancel: "Cancel subscription", cancelAsk: "Cancel your subscription? You'll lose access to paid lessons.", cancelYes: "Yes, cancel", keep: "Keep it",
+      subscribe: "Subscribe to monthly plan", canceledOk: "Subscription canceled.", methodSaved: "Payment method updated.", testNote: "Test environment: real charges will come with Stripe.",
+    },
+    security: {
+      password: "Password", current: "Current password", next: "New password", confirm: "Confirm new password", change: "Change password", changed: "Password changed. Other devices were signed out.",
+      mismatch: "Passwords don't match.", weak: "Use at least 10 characters.", wrong: "Current password is incorrect.", devices: "Connected devices", thisDevice: "This device",
+      lastSeen: "Last active {when}", revoke: "Sign out", revokeOthers: "Sign out all other sessions", revoked: "Session ended.", activity: "Account activity",
+      noActivity: "No recent activity.", ipNote: "For privacy, we only store a hash of your IP address.", forgot: "Forgot my password",
+      events: {
+        login_ok: "Signed in", login_fail: "Failed sign-in attempt", register: "Account created", password_changed: "Password changed", password_reset: "Password reset by email",
+        profile_updated: "Details updated", export: "You exported your data", anamnese_saved: "Assessment saved", payment_method_changed: "Payment method changed",
+        subscription_canceled_by_user: "Subscription canceled", session_revoked: "Session ended", appointment_requested: "Session requested", appointment_canceled: "Session canceled",
+      },
+    },
+    errors: { generic: "We couldn't complete that. Please try again.", rate_limited: "Too many attempts. Please wait a few minutes.", invalid_name: "Enter your name.", invalid_phone: "Invalid phone number.", invalid_address: "Check the address fields." },
+  },
+  forgot: {
+    title: "Forgot your password?", text: "Enter your email and we'll send a link to create a new password.", send: "Send link",
+    sent: "If an account exists for that email, we sent the link. Check your spam folder too.", back: "Back to sign in",
+  },
+  reset: {
+    title: "New password", text: "Choose a strong password with at least 10 characters.", save: "Save new password", done: "Password changed. You can sign in now.",
+    invalid: "This link is invalid or expired. Request a new one.", mismatch: "Passwords don't match.", weak: "Use at least 10 characters.",
+  },
   consult: {
     title: "Online session with a coach", text: "Pick a time to set up your training within the method (Brasília time).",
     none: "No times available right now. Check back soon.", book: "Book", mine: "Your sessions", cancel: "Cancel", join: "Join the call",

@@ -12,12 +12,12 @@ use PDO;
 
 final class Migrator
 {
-    public const LATEST = 2;
+    public const LATEST = 3;
     private static bool $done = false;
 
-    public static function run(PDO $pdo): void
+    public static function run(PDO $pdo, bool $force = false): void
     {
-        if (self::$done) {
+        if (self::$done && !$force) {
             return;
         }
         $sqlite = DB::driver($pdo) === 'sqlite';
@@ -85,6 +85,35 @@ final class Migrator
         if ($v === 2) {
             self::v2($pdo);
         }
+        if ($v === 3) {
+            self::v3($pdo);
+        }
+    }
+
+    /** v3: perfil do aluno (contato/endereço), meio de pagamento (só dados de exibição) e recuperação de senha. */
+    private static function v3(PDO $pdo): void
+    {
+        $sqlite = DB::driver($pdo) === 'sqlite';
+        $id = $sqlite ? 'INTEGER PRIMARY KEY AUTOINCREMENT' : 'BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY';
+        $u = $sqlite ? 'INTEGER' : 'BIGINT UNSIGNED';
+        $dt = $sqlite ? 'TEXT' : 'DATETIME';
+        $tail = $sqlite ? '' : ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
+        $text = $sqlite ? 'TEXT' : 'MEDIUMTEXT';
+        foreach ([
+            'phone' => 'VARCHAR(30) NULL',
+            'profile_enc' => "$text NULL",
+            'pay_method' => "VARCHAR(8) NOT NULL DEFAULT 'card'",
+            'pay_brand' => 'VARCHAR(20) NULL',
+            'pay_last4' => 'VARCHAR(4) NULL',
+        ] as $col => $def) {
+            if (!self::hasColumn($pdo, 'users', $col)) {
+                $pdo->exec("ALTER TABLE users ADD COLUMN $col $def");
+            }
+        }
+        self::exec($pdo, "CREATE TABLE IF NOT EXISTS password_resets (
+            id $id, user_id $u NOT NULL, token_hash CHAR(64) NOT NULL UNIQUE, expires_at $dt NOT NULL, used_at $dt NULL, created_at $dt NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE)$tail");
+        self::exec($pdo, ($sqlite ? 'CREATE INDEX IF NOT EXISTS' : 'CREATE INDEX') . ' ix_resets_user ON password_resets (user_id)');
     }
 
     private static function v2(PDO $pdo): void
@@ -191,6 +220,11 @@ final class Settings
         'availability' => ['weekdays' => [1, 2, 3, 4, 5], 'start' => '09:00', 'end' => '18:00', 'slot_min' => 40],
         'free_lessons' => 1,
         'consult_capacity' => 2,
+        'smtp' => [
+            'enabled' => false, 'host' => '', 'port' => 587, 'secure' => 'tls', 'user' => '', 'pass_enc' => '',
+            'from_email' => '', 'from_name' => 'THE FULL SCULPT', 'reply_to' => '', 'verify_tls' => true,
+            'public_url' => 'https://thefullsculpt.com.br',
+        ],
     ];
 
     /** @return array<string,mixed> */

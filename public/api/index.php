@@ -6,6 +6,7 @@ require __DIR__ . '/lib/migrations.php';
 require __DIR__ . '/lib/util.php';
 require __DIR__ . '/lib/analytics.php';
 require __DIR__ . '/lib/demo.php';
+require __DIR__ . '/lib/mail.php';
 
 use TFS\Audit;
 use TFS\Auth;
@@ -14,7 +15,9 @@ use TFS\Crypto;
 use TFS\DB;
 use TFS\Billing;
 use TFS\Game;
+use TFS\Mailer;
 use TFS\Migrator;
+use TFS\Util;
 use TFS\Http;
 use TFS\Rate;
 use TFS\State;
@@ -75,6 +78,9 @@ function str(mixed $v, int $min, int $max): string
 
 if (str_starts_with($path, '/admin')) {
     require __DIR__ . '/lib/routes/admin.php';
+}
+if (str_starts_with($path, '/me/')) {
+    require __DIR__ . '/lib/routes/account.php';
 }
 if (str_starts_with($path, '/teacher')) {
     require __DIR__ . '/lib/routes/teacher.php';
@@ -138,6 +144,7 @@ switch ("$method $path") {
         }
         Audit::log($pdo, $cfg, $uid, 'register');
         Auth::start($pdo, $cfg, $uid);
+        Mailer::notify($pdo, $cfg, 'welcome', $email, $locale, ['url' => Mailer::publicUrl($pdo) . '/' . $locale . '/app/']);
         $user = DB::one($pdo, 'SELECT * FROM users WHERE id = ?', [$uid]);
         Http::json(State::forUser($pdo, $cfg, $user), 201);
 
@@ -163,9 +170,56 @@ switch ("$method $path") {
             Http::fail(403, 'account_suspended');
         }
         DB::run($pdo, 'UPDATE users SET last_login_at = ? WHERE id = ?', [DB::now(), $user['id']]);
-        Audit::log($pdo, $cfg, (int) $user['id'], 'login_ok');
+        Audit::log($pdo, $cfg, (int) $user['id'], 'login_ok', Util::uaLabel());
         Auth::start($pdo, $cfg, (int) $user['id']);
         Http::json(State::forUser($pdo, $cfg, $user));
+
+    case 'POST /auth/forgot':
+        $b = Http::body();
+        $email = strtolower(trim((string) ($b['email'] ?? '')));
+        $lang = in_array($b['locale'] ?? '', ['pt', 'en', 'es'], true) ? $b['locale'] : 'pt';
+        if (!Rate::hit($pdo, "forgot:$ip", 6, 3600) || ($email !== '' && !Rate::hit($pdo, 'forgot:' . $email, 3, 3600))) {
+            Http::fail(429, 'rate_limited');
+        }
+        // Resposta idêntica exista ou não a conta (não revela cadastros).
+        $user = $email !== '' ? DB::one($pdo, "SELECT id, email, locale FROM users WHERE email = ? AND status = 'active' AND deleted_at IS NULL", [$email]) : null;
+        if ($user && Mailer::enabled($pdo)) {
+            $raw = bin2hex(random_bytes(32));
+            DB::run($pdo, 'INSERT INTO password_resets (user_id, token_hash, expires_at, created_at) VALUES (?, ?, ?, ?)',
+                [$user['id'], hash('sha256', $raw), gmdate('Y-m-d H:i:s', time() + 3600), DB::now()]);
+            Mailer::notify($pdo, $cfg, 'reset', (string) $user['email'], $lang, ['url' => Mailer::publicUrl($pdo) . '/' . $lang . '/redefinir/?token=' . $raw]);
+            Audit::log($pdo, $cfg, (int) $user['id'], 'password_reset_requested');
+        }
+        Http::json(['ok' => true]);
+
+    case 'POST /auth/reset':
+        $b = Http::body();
+        $token = (string) ($b['token'] ?? '');
+        $new = $b['password'] ?? null;
+        if (!Rate::hit($pdo, "reset:$ip", 10, 3600)) {
+            Http::fail(429, 'rate_limited');
+        }
+        if (!is_string($new) || strlen($new) < 10 || strlen($new) > 200) {
+            Http::fail(422, 'weak_password');
+        }
+        $row = preg_match('/^[a-f0-9]{64}$/', $token)
+            ? DB::one($pdo, 'SELECT id, user_id FROM password_resets WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?', [hash('sha256', $token), DB::now()])
+            : null;
+        if (!$row) {
+            Http::fail(400, 'invalid_token');
+        }
+        $pdo->beginTransaction();
+        try {
+            DB::run($pdo, 'UPDATE users SET password_hash = ? WHERE id = ?', [Auth::hash($new), $row['user_id']]);
+            DB::run($pdo, 'UPDATE password_resets SET used_at = ? WHERE id = ?', [DB::now(), $row['id']]);
+            DB::run($pdo, 'DELETE FROM sessions WHERE user_id = ?', [$row['user_id']]);
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+        Audit::log($pdo, $cfg, (int) $row['user_id'], 'password_reset');
+        Http::json(['ok' => true]);
 
     case 'POST /auth/logout':
         Auth::logout($pdo, $cfg);

@@ -114,6 +114,42 @@ const es: Dict = {
     coach: "Consulta en línea con profesor", coachText: "Pediste parametrizar tu entrenamiento con un profesor. La reserva llegará pronto.",
     language: "Idioma", reloadDemo: "Recargar datos de demostración",
   },
+  acct: {
+    title: "Tu cuenta", eyebrow: "Perfil",
+    tabs: { account: "Cuenta", billing: "Pagos", security: "Seguridad", consult: "Consultas", privacy: "Privacidad" },
+    profile: {
+      title: "Tus datos", name: "Nombre completo", email: "Correo", emailNote: "El correo es tu acceso y no se puede cambiar aquí.", phone: "Teléfono",
+      address: "Dirección", zip: "Código postal", street: "Calle", number: "Número", complement: "Complemento", district: "Barrio", city: "Ciudad", state: "Estado", country: "País",
+      language: "Idioma", save: "Guardar cambios", saved: "Cambios guardados.", since: "Miembro desde {date}", sensitive: "Tu dirección se guarda cifrada.",
+    },
+    billing: {
+      plan: "Plan", active: "Activo", canceled: "Cancelado", none: "Sin suscripción", perMonth: "{price}/mes", next: "Próximo cobro", started: "Suscriptor desde",
+      method: "Medio de pago", card: "Tarjeta", pix: "Pix", cardNote: "Los datos de la tarjeta los trata de forma segura el proveedor de pagos y nunca pasan por nuestros servidores.",
+      noCard: "Aún no hay tarjeta guardada", history: "Historial de pagos", noHistory: "Aún no hay pagos.", paid: "Pagado", refunded: "Reembolsado", failed: "Falló", pending: "Pendiente",
+      total: "Total pagado", cancel: "Cancelar suscripción", cancelAsk: "¿Cancelar tu suscripción? Perderás el acceso a las clases de pago.", cancelYes: "Sí, cancelar", keep: "Mantener",
+      subscribe: "Suscribirse al plan mensual", canceledOk: "Suscripción cancelada.", methodSaved: "Medio de pago actualizado.", testNote: "Entorno de prueba: los cobros reales llegarán con Stripe.",
+    },
+    security: {
+      password: "Contraseña", current: "Contraseña actual", next: "Nueva contraseña", confirm: "Confirmar nueva contraseña", change: "Cambiar contraseña", changed: "Contraseña cambiada. Se cerró la sesión en los otros dispositivos.",
+      mismatch: "Las contraseñas no coinciden.", weak: "Usa al menos 10 caracteres.", wrong: "La contraseña actual es incorrecta.", devices: "Dispositivos conectados", thisDevice: "Este dispositivo",
+      lastSeen: "Último acceso {when}", revoke: "Cerrar", revokeOthers: "Cerrar todas las demás sesiones", revoked: "Sesión cerrada.", activity: "Actividad de la cuenta",
+      noActivity: "Sin actividad reciente.", ipNote: "Por privacidad, solo guardamos un hash de tu dirección IP.", forgot: "Olvidé mi contraseña",
+      events: {
+        login_ok: "Inicio de sesión", login_fail: "Intento de acceso fallido", register: "Cuenta creada", password_changed: "Contraseña cambiada", password_reset: "Contraseña restablecida por correo",
+        profile_updated: "Datos actualizados", export: "Exportaste tus datos", anamnese_saved: "Anamnesis guardada", payment_method_changed: "Medio de pago cambiado",
+        subscription_canceled_by_user: "Suscripción cancelada", session_revoked: "Sesión cerrada", appointment_requested: "Consulta solicitada", appointment_canceled: "Consulta cancelada",
+      },
+    },
+    errors: { generic: "No pudimos completarlo. Inténtalo de nuevo.", rate_limited: "Demasiados intentos. Espera unos minutos.", invalid_name: "Escribe tu nombre.", invalid_phone: "Teléfono no válido.", invalid_address: "Revisa los campos de dirección." },
+  },
+  forgot: {
+    title: "¿Olvidaste tu contraseña?", text: "Escribe tu correo y te enviaremos un enlace para crear una nueva contraseña.", send: "Enviar enlace",
+    sent: "Si existe una cuenta con ese correo, enviamos el enlace. Revisa también el spam.", back: "Volver al acceso",
+  },
+  reset: {
+    title: "Nueva contraseña", text: "Elige una contraseña segura de al menos 10 caracteres.", save: "Guardar nueva contraseña", done: "Contraseña cambiada. Ya puedes entrar.",
+    invalid: "Este enlace no es válido o venció. Pide uno nuevo.", mismatch: "Las contraseñas no coinciden.", weak: "Usa al menos 10 caracteres.",
+  },
   consult: {
     title: "Consulta en línea con profesor", text: "Elige un horario para parametrizar tu entrenamiento dentro del método (hora de Brasilia).",
     none: "No hay horarios disponibles ahora. Vuelve pronto.", book: "Reservar", mine: "Tus consultas", cancel: "Cancelar", join: "Entrar a la llamada",

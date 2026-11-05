@@ -71,4 +71,13 @@ final class Util
     {
         return number_format($cents / 100, 2, ',', '.');
     }
+
+    /** Rótulo curto do dispositivo ("Chrome · Windows") a partir do User-Agent. */
+    public static function uaLabel(?string $ua = null): string
+    {
+        $ua ??= (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
+        $os = str_contains($ua, 'Windows') ? 'Windows' : (str_contains($ua, 'iPhone') || str_contains($ua, 'iPad') ? 'iOS' : (str_contains($ua, 'Android') ? 'Android' : (str_contains($ua, 'Mac OS') ? 'macOS' : (str_contains($ua, 'Linux') ? 'Linux' : 'Outro'))));
+        $br = str_contains($ua, 'Edg/') ? 'Edge' : (str_contains($ua, 'OPR/') ? 'Opera' : (str_contains($ua, 'Chrome/') ? 'Chrome' : (str_contains($ua, 'Firefox/') ? 'Firefox' : (str_contains($ua, 'Safari/') ? 'Safari' : 'Navegador'))));
+        return "$br · $os";
+    }
 }

@@ -13,6 +13,7 @@ use TFS\Crypto;
 use TFS\Demo;
 use TFS\DB;
 use TFS\Http;
+use TFS\Mailer;
 use TFS\Migrator;
 use TFS\Seed;
 use TFS\Settings;
@@ -644,6 +645,13 @@ if (preg_match('#^/admin/appointments/(\d+)$#', $path, $m)) {
             }
         }
         Audit::log($pdo, $cfg, $aid, 'admin_appointment_update', (string) $m[1]);
+        if (($b['status'] ?? '') === 'confirmed' && $ap['status'] !== 'confirmed') {
+            $st = DB::one($pdo, 'SELECT u.email, u.locale, a.starts_at FROM appointments a JOIN users u ON u.id = a.user_id WHERE a.id = ? AND u.is_demo = 0', [$m[1]]);
+            if ($st) {
+                $when = (new DateTimeImmutable($st['starts_at'] . ' UTC'))->setTimezone(new DateTimeZone('America/Sao_Paulo'))->format('d/m/Y H:i');
+                Mailer::notify($pdo, $cfg, 'appointment', (string) $st['email'], (string) $st['locale'], ['when' => $when . ' (Brasília)', 'url' => Mailer::publicUrl($pdo) . '/' . $st['locale'] . '/app/perfil/']);
+            }
+        }
         Http::json(['ok' => true]);
     }
     if ($method === 'DELETE') {
@@ -654,7 +662,9 @@ if (preg_match('#^/admin/appointments/(\d+)$#', $path, $m)) {
 
 /* ---------------- Configurações, sistema, demo, auditoria ---------------- */
 if ($route === 'GET /admin/settings') {
-    Http::json(Settings::all($pdo));
+    $all = Settings::all($pdo);
+    unset($all['smtp']);
+    Http::json($all);
 }
 if ($route === 'PUT /admin/settings') {
     $b = Http::body();
@@ -712,7 +722,9 @@ if ($route === 'PUT /admin/settings') {
         Settings::set($pdo, $k, $v);
     }
     Audit::log($pdo, $cfg, $aid, 'admin_settings', implode(',', array_keys($out)));
-    Http::json(Settings::all($pdo));
+    $all = Settings::all($pdo);
+    unset($all['smtp']);
+    Http::json($all);
 }
 if ($route === 'GET /admin/system') {
     $count = static fn(string $t, string $w = '1=1') => (int) DB::one($pdo, "SELECT COUNT(*) AS n FROM $t WHERE $w")['n'];
@@ -762,6 +774,10 @@ if ($route === 'GET /admin/privacy') {
         'withHealthData' => (int) DB::one($pdo, 'SELECT COUNT(*) AS n FROM anamneses a JOIN users u ON u.id = a.user_id WHERE u.is_demo = 0')['n'],
         'sessionsActive' => (int) DB::one($pdo, 'SELECT COUNT(*) AS n FROM sessions WHERE expires_at > ?', [DB::now()])['n'],
     ]);
+}
+
+if (str_starts_with($path, '/admin/smtp') || str_starts_with($path, '/admin/database')) {
+    require __DIR__ . '/admin_system.php';
 }
 
 Http::fail(404, 'not_found');

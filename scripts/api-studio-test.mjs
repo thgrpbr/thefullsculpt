@@ -91,6 +91,22 @@ ok("rig sem vídeo continua válido", (await admin.call("PUT", `/admin/studio/${
 ok("detalhe traz o vídeo cadastrado no exercício (ou nulo)", "video_url" in gv.json);
 await admin.call("DELETE", `/admin/studio/${slug}`);
 
+console.log("Músculos ativados");
+const mus = (m) => def({ muscles: m });
+ok("músculo desconhecido => 422", (await admin.call("PUT", `/admin/studio/${slug}`, { def: mus({ biceps_x: { role: "primary", level: 100, timing: "hold" } }) })).status === 422);
+ok("papel inválido => 422", (await admin.call("PUT", `/admin/studio/${slug}`, { def: mus({ quads: { role: "mestre", level: 100, timing: "hold" } }) })).status === 422);
+ok("intensidade fora de 0–100 => 422", (await admin.call("PUT", `/admin/studio/${slug}`, { def: mus({ quads: { role: "primary", level: 150, timing: "hold" } }) })).status === 422);
+ok("fase inválida => 422", (await admin.call("PUT", `/admin/studio/${slug}`, { def: mus({ quads: { role: "primary", level: 80, timing: "sempre" } }) })).status === 422);
+const sm = await admin.call("PUT", `/admin/studio/${slug}`, { def: mus({ calves: { role: "primary", level: 90, timing: "rise" }, abs: { role: "secondary", level: 55, timing: "hold" }, traps: { role: "stabilizer", level: 25, timing: "fall" } }), note: "músculos" });
+const gm = await admin.call("GET", `/admin/studio/${slug}`);
+ok("salva músculos com papel, intensidade e fase", sm.status === 200 && gm.json.def.muscles.calves.level === 90 && gm.json.def.muscles.calves.timing === "rise" && gm.json.def.muscles.traps.role === "stabilizer", JSON.stringify(gm.json.def?.muscles));
+ok("o app recebe os músculos junto do movimento", (await anon.call("GET", "/motions")).json.rigs[slug].muscles.abs.role === "secondary");
+const exs = (await admin.call("GET", "/admin/exercises")).json.rows.find((e) => e.slug === slug);
+ok("a lista do exercício (Método) é atualizada com os papéis editados", exs.primary_m === "calves" && exs.secondary_m === "abs" && exs.stabilizers_m === "traps", JSON.stringify([exs.primary_m, exs.secondary_m, exs.stabilizers_m]));
+ok("o detalhe do Estúdio traz as listas do exercício", gm.json.primary_m === "calves" && gm.json.secondary_m === "abs");
+ok("rig sem músculos (null) não mexe nas listas", (await admin.call("PUT", `/admin/studio/${slug}`, { def: def() })).status === 200 && (await admin.call("GET", "/admin/exercises")).json.rows.find((e) => e.slug === slug).primary_m === "calves");
+await admin.call("DELETE", `/admin/studio/${slug}`);
+
 console.log("Permissões");
 const aluno = new Client();
 await aluno.login("teste@thefullsculpt.com.br");

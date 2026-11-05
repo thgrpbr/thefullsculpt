@@ -8,19 +8,20 @@ import { Pause, Play, Redo2, Undo2 } from "lucide-react";
 import { useI18n } from "@/i18n/provider";
 import { ERRORS, send, useApi } from "@/lib/admin";
 import { EXERCISES } from "@/lib/exercises";
-import { defaultDef, defaultVideo, exportReference, limitWarnings, type Key, type MotionDef } from "@/lib/motion";
+import { ROLE_LEVEL, defaultDef, defaultVideo, exportReference, limitWarnings, musclesFromLists, type Key, type MotionDef } from "@/lib/motion";
+import type { MuscleId } from "@/lib/exercises";
 import { Badge, Btn, Card, inputCls, PageHead, Spinner, Tabs, useAdmin } from "@/components/admin/ui";
 import { SideEditor } from "@/components/studio/SideEditor";
-import { BodyPanel, CameraPanel, MovementPanel, VersionsPanel, VideoPanel, clamp, r4, type VideoState } from "@/components/studio/panels";
+import { BodyPanel, CameraPanel, MovementPanel, MusclesPanel, VersionsPanel, VideoPanel, clamp, r4, type Brush, type VideoState } from "@/components/studio/panels";
 
 const AnatomyPanel = dynamic(() => import("@/components/AnatomyPanel"), { ssr: false, loading: () => <div className="h-full w-full animate-pulse bg-surface" /> });
 
 interface Row { slug: string; name: string; motion: string; depth: number; rig_version: number | null }
-interface Detail { slug: string; name: string; motion: "squat" | "hinge" | "press" | "raise"; depth: number; video_url: string | null; def: MotionDef | null; version: number | null; history: { id: number; version: number; note: string | null; created_at: string; is_current: number; author: string | null }[] }
+interface Detail { slug: string; name: string; motion: "squat" | "hinge" | "press" | "raise"; depth: number; video_url: string | null; primary_m: string; secondary_m: string; stabilizers_m: string; def: MotionDef | null; version: number | null; history: { id: number; version: number; note: string | null; created_at: string; is_current: number; author: string | null }[] }
 
 const MORE: Record<string, string> = { invalid_rig: "Algum valor está fora da faixa aceita.", rig_keys_range: "As poses-chave precisam começar em 0% e terminar em 100%.", rig_keys_duplicate: "Duas poses-chave estão na mesma posição.", video_marks: "As marcas do vídeo precisam seguir a ordem: início ≤ ponto máximo ≤ fim." };
 const sameJson = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
-type Tab = "movimento" | "video" | "corpo" | "camera" | "versoes";
+type Tab = "movimento" | "musculos" | "video" | "corpo" | "camera" | "versoes";
 
 export default function Page() {
   return (
@@ -104,6 +105,10 @@ function Editor({ d, rows, reload }: { d: Detail; rows: Row[]; reload: () => voi
   const [tab, setTab] = useState<Tab>("movimento");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [brush, setBrush] = useState<Brush>("primary");
+  const [highlight, setHighlight] = useState<MuscleId | null>(null);
+  const split = (s: string) => s.split(",").filter(Boolean);
+  const fromExercise = useMemo(() => musclesFromLists(split(d.primary_m), split(d.secondary_m), split(d.stabilizers_m)), [d.primary_m, d.secondary_m, d.stabilizers_m]);
   const dirty = !sameJson(def, baseline);
   const playing = scrub === null;
   const warnings = useMemo(() => limitWarnings(def), [def]);
@@ -206,6 +211,15 @@ function Editor({ d, rows, reload }: { d: Detail; rows: Row[]; reload: () => voi
     return () => window.removeEventListener("keydown", h);
   }, []);
 
+  const pickMuscle = useCallback((id: MuscleId) => {
+    setDef((x) => {
+      const m = { ...(x.muscles ?? fromExercise) };
+      if (brush === "none" || m[id]?.role === brush) delete m[id];
+      else m[id] = { role: brush, level: m[id]?.role === brush ? m[id]!.level : ROLE_LEVEL[brush], timing: m[id]?.timing ?? "hold" };
+      return { ...x, muscles: m };
+    });
+  }, [brush, fromExercise, setDef]);
+
   const underlay = src ? (
     <video
       ref={videoRef}
@@ -228,7 +242,7 @@ function Editor({ d, rows, reload }: { d: Detail; rows: Row[]; reload: () => voi
     />
   ) : undefined;
 
-  const TABS: { value: Tab; label: string; count?: number }[] = [{ value: "movimento", label: "Movimento" }, { value: "video", label: "Vídeo da instrutora" }, { value: "corpo", label: "Corpo e limites" }, { value: "camera", label: "Correção por câmera" }, { value: "versoes", label: "Versões e cópias", count: d.history.length }];
+  const TABS: { value: Tab; label: string; count?: number }[] = [{ value: "movimento", label: "Movimento" }, { value: "musculos", label: "Músculos" }, { value: "video", label: "Vídeo da instrutora" }, { value: "corpo", label: "Corpo e limites" }, { value: "camera", label: "Correção por câmera" }, { value: "versoes", label: "Versões e cópias", count: d.history.length }];
 
   return (
     <div className="space-y-4">
@@ -251,7 +265,7 @@ function Editor({ d, rows, reload }: { d: Detail; rows: Row[]; reload: () => voi
         {/* esquerda: pré-visualização 3D */}
         <div className="space-y-3 xl:sticky xl:top-[125px] xl:self-start">
           <div className="relative h-[440px] overflow-hidden rounded-[28px]">
-            <AnatomyPanel exerciseId={exerciseId} playing={playing} motionDef={def} scrub={scrub} defaultLayer="skeleton" className="h-full" />
+            <AnatomyPanel exerciseId={exerciseId} playing={playing} motionDef={tab === "musculos" ? { ...def, muscles: def.muscles ?? fromExercise } : def} scrub={scrub} defaultLayer="skeleton" forceLayer={tab === "musculos" ? "muscle" : undefined} highlight={tab === "musculos" ? highlight : null} onPickMuscle={tab === "musculos" ? pickMuscle : undefined} className="h-full" />
           </div>
           <div className="flex items-center gap-3 rounded-2xl border-[0.5px] border-line bg-surface px-4 py-3">
             <button type="button" onClick={() => setScrub(playing ? def.keys[safeSel].p : null)} aria-label={playing ? "Pausar (Espaço)" : "Reproduzir (Espaço)"} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-fg text-bg">
@@ -278,6 +292,7 @@ function Editor({ d, rows, reload }: { d: Detail; rows: Row[]; reload: () => voi
           </Card>
           <Tabs value={tab} onChange={setTab} items={TABS} />
           {tab === "movimento" && <MovementPanel def={def} setDef={setDef} sel={safeSel} setSel={setSel} setKey={setKey} scrub={scrub} type={d.motion} />}
+          {tab === "musculos" && <MusclesPanel def={def} setDef={setDef} fromExercise={fromExercise} brush={brush} setBrush={setBrush} setHighlight={setHighlight} />}
           {tab === "video" && (
             <VideoPanel
               def={def} setDef={setDef} videoRef={videoRef} state={vs} exerciseVideo={d.video_url} localName={local?.name ?? null}

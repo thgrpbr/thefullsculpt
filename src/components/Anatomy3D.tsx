@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useSyncExternalStore, type MutableRefObject
 import * as THREE from "three";
 import { EXERCISES, muscleRole, type MuscleId, type MuscleRole } from "@/lib/exercises";
 import { REP_SECONDS, computePose, wave, type JointName, type Pose } from "@/lib/pose";
-import { poseFromDef, type MotionDef } from "@/lib/motion";
+import { poseFromDef, timingFactor, type MotionDef } from "@/lib/motion";
 
 export type Layer = "skin" | "muscle" | "skeleton";
 export type ViewPreset = "side" | "front" | "angle";
@@ -24,6 +24,8 @@ interface Props {
   onMetrics?: (m: Pose["metrics"]) => void;
   /** movimento personalizado (Estúdio); sem ele usa o padrão do exercício */
   motionDef?: MotionDef | null;
+  /** clique em um músculo (Estúdio: pintar o papel) */
+  onPickMuscle?: (m: MuscleId) => void;
   /** posição fixa na repetição (0–1), usada pelo Estúdio ao arrastar a linha do tempo */
   scrub?: number | null;
 }
@@ -259,22 +261,30 @@ function Skeleton({ poseRef, ik }: { poseRef: PoseRef; ik: boolean }) {
 
 function Muscles({
   poseRef,
+  pRef,
   exerciseId,
   layer,
   hover,
   onHover,
+  motionDef,
+  onPick,
 }: {
   poseRef: PoseRef;
+  pRef: MutableRefObject<number>;
   exerciseId: string;
   layer: Layer;
   hover: MuscleId | null;
   onHover: (m: MuscleId | null) => void;
+  motionDef?: MotionDef | null;
+  onPick?: (m: MuscleId) => void;
 }) {
   const ex = EXERCISES[exerciseId];
+  const custom = motionDef?.muscles ?? null;
   return (
     <>
       {MUSCLES.map((m, mi) => {
-        const role = muscleRole(ex, m.id);
+        const act = custom ? custom[m.id] ?? null : null;
+        const role = custom ? (act?.role ?? null) : muscleRole(ex, m.id);
         if (layer !== "muscle" && !role) return null;
         const active = !!role;
         const color = role ? ROLE_COLOR[role] : IDLE;
@@ -284,6 +294,7 @@ function Muscles({
           <Anchored key={`${mi}-${z}`} poseRef={poseRef} seg={m.seg} t={m.t} off={m.off} z={z}>
             <mesh
               scale={m.size.map((s) => s * (isHover ? 1.14 : 1)) as [number, number, number]}
+              onClick={onPick ? (e) => { e.stopPropagation(); onPick(m.id); } : undefined}
               onPointerOver={(e) => {
                 e.stopPropagation();
                 onHover(m.id);
@@ -295,21 +306,27 @@ function Muscles({
               }}
             >
               <primitive object={m.shape === "ball" ? BALL_GEO : FUS_GEO} attach="geometry" />
-              <meshStandardMaterial
-                color={color}
-                transparent
-                opacity={opacity}
-                roughness={0.5}
-                emissive={active ? color : "#000000"}
-                emissiveIntensity={isHover ? 0.7 : active ? 0.28 : 0}
-                depthWrite={opacity > 0.8}
-              />
+              <MuscleMaterial color={color} opacity={opacity} active={active} hover={isHover} act={act} pRef={pRef} />
             </mesh>
           </Anchored>
         ));
       })}
     </>
   );
+}
+
+/** Material do músculo: intensidade (0–100) e fase da repetição variam o brilho em tempo real. */
+function MuscleMaterial({ color, opacity, active, hover, act, pRef }: { color: string; opacity: number; active: boolean; hover: boolean; act: { level: number; timing: "hold" | "rise" | "fall" } | null; pRef: MutableRefObject<number> }) {
+  const mat = useRef<THREE.MeshStandardMaterial>(null);
+  useFrame(() => {
+    const m = mat.current;
+    if (!m) return;
+    const lvl = act ? act.level / 100 : 1;
+    const f = act ? timingFactor(act.timing, pRef.current) : 1;
+    m.emissiveIntensity = hover ? 0.7 : active ? 0.06 + 0.32 * lvl * f : 0;
+    m.opacity = active ? opacity * (0.55 + 0.45 * lvl) : opacity;
+  });
+  return <meshStandardMaterial ref={mat} color={color} transparent opacity={opacity} roughness={0.5} emissive={active ? color : "#000000"} emissiveIntensity={active ? 0.28 : 0} depthWrite={opacity > 0.8} />;
 }
 
 function IKMarkers({ poseRef }: { poseRef: PoseRef }) {
@@ -343,6 +360,7 @@ function Figure(props: Props) {
   const ex = EXERCISES[exerciseId];
   const poseRef = useRef<Pose>(computePose(ex.motion.type, ex.motion.depth, 0));
   const clock = useRef(0);
+  const pRef = useRef(0);
   const lastEmit = useRef(0);
 
   useEffect(() => {
@@ -353,6 +371,7 @@ function Figure(props: Props) {
     if (playing) clock.current += Math.min(dt, 0.1) * speed;
     const seconds = motionDef?.repSeconds ?? REP_SECONDS;
     const p = scrub !== null && scrub !== undefined ? scrub : wave(clock.current / seconds);
+    pRef.current = p;
     poseRef.current = motionDef ? poseFromDef(motionDef, p) : computePose(ex.motion.type, ex.motion.depth, p);
     const now = performance.now();
     if (onMetrics && now - lastEmit.current > 140) {
@@ -365,7 +384,7 @@ function Figure(props: Props) {
     <group position={[-0.06, 0, 0]}>
       {(layer === "skin" || layer === "muscle") && <Skin poseRef={poseRef} o={layer === "skin" ? 0.3 : 0.14} />}
       {(layer === "skeleton" || showIK) && <Skeleton poseRef={poseRef} ik={showIK} />}
-      <Muscles poseRef={poseRef} exerciseId={exerciseId} layer={layer} hover={hoverMuscle} onHover={onHover} />
+      <Muscles poseRef={poseRef} pRef={pRef} exerciseId={exerciseId} layer={layer} hover={hoverMuscle} onHover={onHover} motionDef={motionDef} onPick={props.onPickMuscle} />
       {showIK && <IKMarkers poseRef={poseRef} />}
     </group>
   );

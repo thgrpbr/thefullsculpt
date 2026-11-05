@@ -21,6 +21,7 @@ $route = "$method $path";
 $m = [];
 
 const RIG_JOINTS = ['knee', 'hip', 'trunk', 'elbow', 'shoulder'];
+const RIG_MUSCLES = ['quads', 'hamstrings', 'glutes', 'calves', 'abs', 'erector', 'lats', 'pecs', 'traps', 'deltoids', 'biceps', 'triceps'];
 const RIG_LENGTHS = ['thigh' => [0.25, 0.65], 'shank' => [0.25, 0.65], 'torso' => [0.3, 0.8], 'uarm' => [0.18, 0.45], 'farm' => [0.15, 0.4], 'neck' => [0.05, 0.3]];
 
 /** Valida e normaliza a definição do movimento. Falha com 422 em qualquer valor fora de faixa. */
@@ -110,7 +111,18 @@ $cleanDef = static function (mixed $d): array {
         $video = ['url' => $url, 't0' => $t0, 't1' => $t1, 't2' => $t2, 'flip' => ($v['flip'] ?? false) === true, 'scale' => $num($v['scale'] ?? 1, 0.2, 4),
             'ox' => $num($v['ox'] ?? 0, -400, 400), 'oy' => $num($v['oy'] ?? 0, -400, 400), 'opacity' => $num($v['opacity'] ?? 0.6, 0, 1), 'heightM' => $num($v['heightM'] ?? 1.7, 1, 2.3)];
     }
-    return ['v' => 1, 'video' => $video, 'lengths' => $lengths, 'keys' => $outKeys, 'limits' => $limits, 'checks' => $checks, 'repSeconds' => $num($d['repSeconds'] ?? 4, 1.5, 12)];
+    // músculos ativados (opcional): papel, intensidade e fase da repetição
+    $muscles = null;
+    if (is_array($d['muscles'] ?? null)) {
+        $muscles = [];
+        foreach ($d['muscles'] as $id => $a) {
+            if (!in_array($id, RIG_MUSCLES, true) || !is_array($a) || !in_array($a['role'] ?? '', ['primary', 'secondary', 'stabilizer'], true) || !in_array($a['timing'] ?? 'hold', ['hold', 'rise', 'fall'], true)) {
+                $bad();
+            }
+            $muscles[$id] = ['role' => $a['role'], 'level' => (int) $num($a['level'] ?? 100, 0, 100), 'timing' => $a['timing'] ?? 'hold'];
+        }
+    }
+    return ['v' => 1, 'video' => $video, 'muscles' => $muscles, 'lengths' => $lengths, 'keys' => $outKeys, 'limits' => $limits, 'checks' => $checks, 'repSeconds' => $num($d['repSeconds'] ?? 4, 1.5, 12)];
 };
 
 if ($route === 'GET /admin/studio') {
@@ -127,7 +139,7 @@ if ($route === 'GET /admin/studio') {
 
 if (preg_match('#^/admin/studio/([A-Za-z0-9_-]{2,40})(?:/(restore))?$#', $path, $m)) {
     $slug = $m[1];
-    $ex = DB::one($pdo, 'SELECT slug, motion, depth, i18n, video_url FROM exercises WHERE slug = ?', [$slug]);
+    $ex = DB::one($pdo, 'SELECT slug, motion, depth, i18n, video_url, primary_m, secondary_m, stabilizers_m FROM exercises WHERE slug = ?', [$slug]);
     if (!$ex) {
         Http::fail(404, 'not_found');
     }
@@ -136,6 +148,7 @@ if (preg_match('#^/admin/studio/([A-Za-z0-9_-]{2,40})(?:/(restore))?$#', $path, 
         $hist = DB::all($pdo, 'SELECT r.id, r.version, r.note, r.created_at, r.is_current, u.name AS author FROM exercise_rigs r LEFT JOIN users u ON u.id = r.author_id WHERE r.slug = ? ORDER BY r.version DESC LIMIT 50', [$slug]);
         $i = json_decode((string) $ex['i18n'], true);
         Http::json(['slug' => $slug, 'name' => $i['pt']['name'] ?? $slug, 'motion' => $ex['motion'], 'depth' => (float) $ex['depth'], 'video_url' => $ex['video_url'],
+            'primary_m' => $ex['primary_m'], 'secondary_m' => $ex['secondary_m'], 'stabilizers_m' => $ex['stabilizers_m'],
             'def' => $cur ? json_decode((string) $cur['def'], true) : null, 'version' => $cur ? (int) $cur['version'] : null, 'history' => $hist]);
     }
     if ($method === 'PUT') {
@@ -152,6 +165,15 @@ if (preg_match('#^/admin/studio/([A-Za-z0-9_-]{2,40})(?:/(restore))?$#', $path, 
         } catch (\Throwable $e) {
             $pdo->rollBack();
             throw $e;
+        }
+        if (is_array($def['muscles'])) {
+            // mantém a lista de músculos do exercício (tela Método) igual ao que foi editado no Estúdio
+            $by = ['primary' => [], 'secondary' => [], 'stabilizer' => []];
+            foreach ($def['muscles'] as $id => $a) {
+                $by[$a['role']][] = $id;
+            }
+            DB::run($pdo, 'UPDATE exercises SET primary_m = ?, secondary_m = ?, stabilizers_m = ?, updated_at = ? WHERE slug = ?',
+                [implode(',', $by['primary']), implode(',', $by['secondary']), implode(',', $by['stabilizer']), DB::now(), $slug]);
         }
         Audit::log($pdo, $cfg, $uid, 'admin_rig_saved', "$slug v$ver");
         Http::json(['ok' => true, 'version' => $ver]);

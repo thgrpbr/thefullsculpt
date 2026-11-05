@@ -3,8 +3,9 @@
 import { useMemo, useState, type ReactNode, type RefObject } from "react";
 import { Camera, Copy, Download, FileVideo, Plus, Sparkles, StepBack, StepForward, Trash2, Upload, Wand2 } from "lucide-react";
 import { dateTimeBr } from "@/lib/admin";
-import { JOINTS, JOINT_LABEL, MEDIAPIPE_MAP, controlsAt, defaultDef, defaultVideo, referenceCurves, type Check, type JointAngle, type Key, type MotionDef, type VideoRef } from "@/lib/motion";
-import type { MotionType } from "@/lib/exercises";
+import { JOINTS, JOINT_LABEL, MEDIAPIPE_MAP, MUSCLE_IDS, ROLE_LEVEL, TIMING_LABEL, controlsAt, defaultDef, defaultVideo, referenceCurves, type Check, type JointAngle, type Key, type MotionDef, type MuscleAct, type MuscleMap, type MuscleTiming, type VideoRef } from "@/lib/motion";
+import type { MotionType, MuscleId, MuscleRole } from "@/lib/exercises";
+import { MUSCLE_PT } from "@/lib/admin";
 import { Badge, Btn, Field, inputCls } from "@/components/admin/ui";
 import { detectKeys } from "./mediapipe";
 
@@ -261,6 +262,93 @@ export function VideoPanel({ def, setDef, videoRef, state, exerciseVideo, localN
           </Group>
         </>
       )}
+    </div>
+  );
+}
+
+
+/* ================================================================ Músculos */
+
+export type Brush = MuscleRole | "none";
+export const ROLE_LABEL: Record<MuscleRole, string> = { primary: "Principal", secondary: "Auxiliar", stabilizer: "Estabilizador" };
+export const ROLE_COLOR: Record<MuscleRole, string> = { primary: "#E2563B", secondary: "#C79A68", stabilizer: "#8C877E" };
+const REGIONS: [string, MuscleId[]][] = [
+  ["Pernas e quadril", ["quads", "hamstrings", "glutes", "calves"]],
+  ["Tronco", ["abs", "erector", "lats", "pecs", "traps"]],
+  ["Ombros e braços", ["deltoids", "biceps", "triceps"]],
+];
+
+export function MusclesPanel({ def, setDef, fromExercise, brush, setBrush, setHighlight }: {
+  def: MotionDef; setDef: SetDef; fromExercise: MuscleMap; brush: Brush; setBrush: (b: Brush) => void; setHighlight: (m: MuscleId | null) => void;
+}) {
+  const map: MuscleMap = def.muscles ?? fromExercise;
+  const edited = def.muscles != null;
+  const write = (f: (m: MuscleMap) => MuscleMap) => setDef((x) => ({ ...x, muscles: f({ ...(x.muscles ?? fromExercise) }) }));
+  const setRole = (id: MuscleId, role: MuscleRole | null) => write((m) => {
+    if (role === null) delete m[id];
+    else m[id] = { role, level: m[id]?.role === role ? m[id]!.level : ROLE_LEVEL[role], timing: m[id]?.timing ?? "hold" };
+    return m;
+  });
+  const patch = (id: MuscleId, p: Partial<MuscleAct>) => write((m) => { if (m[id]) m[id] = { ...m[id]!, ...p }; return m; });
+  const count = (r: MuscleRole) => MUSCLE_IDS.filter((id) => map[id]?.role === r).length;
+  const brushes: { value: Brush; label: string; color: string }[] = [
+    { value: "primary", label: "Principal", color: ROLE_COLOR.primary }, { value: "secondary", label: "Auxiliar", color: ROLE_COLOR.secondary },
+    { value: "stabilizer", label: "Estabilizador", color: ROLE_COLOR.stabilizer }, { value: "none", label: "Apagar", color: "#ffffff" },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <Group title="Pintar no corpo 3D" hint="Escolha um pincel e clique nos músculos do boneco. Clicar de novo no mesmo músculo com o mesmo pincel remove a ativação.">
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Pincel">
+          {brushes.map((b) => (
+            <button key={b.value} type="button" role="radio" aria-checked={brush === b.value} onClick={() => setBrush(b.value)} className={`flex items-center gap-2 rounded-full border-[0.5px] px-4 py-1.5 text-[13px] ${brush === b.value ? "border-fg bg-fg text-bg" : "border-line hover:bg-surface2"}`}>
+              <span className="h-3 w-3 rounded-full border-[0.5px] border-black/20" style={{ background: b.color }} />{b.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-3 text-[12px] text-muted">{count("primary")} principal(is) · {count("secondary")} auxiliar(es) · {count("stabilizer")} estabilizador(es){edited ? "" : " — lista atual do exercício (ainda sem edição)"}</p>
+      </Group>
+
+      {REGIONS.map(([region, ids]) => (
+        <Group key={region} title={region}>
+          <div className="space-y-3">
+            {ids.map((id) => {
+              const a = map[id];
+              return (
+                <div key={id} onMouseEnter={() => setHighlight(id)} onMouseLeave={() => setHighlight(null)} className="rounded-xl border-[0.5px] border-line p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="flex items-center gap-2 text-[13px]"><span className="h-2.5 w-2.5 rounded-full" style={{ background: a ? ROLE_COLOR[a.role] : "#7d4d45", opacity: a ? 1 : 0.4 }} />{MUSCLE_PT[id] ?? id}</span>
+                    <div className="flex gap-1" role="group" aria-label={`Papel de ${MUSCLE_PT[id] ?? id}`}>
+                      {([["none", "—"], ["primary", "P"], ["secondary", "A"], ["stabilizer", "E"]] as const).map(([r, l]) => {
+                        const on = (a?.role ?? "none") === r;
+                        return <button key={r} type="button" onClick={() => setRole(id, r === "none" ? null : r)} aria-pressed={on} title={r === "none" ? "Sem ativação" : ROLE_LABEL[r]} className={`h-7 w-8 rounded-full border-[0.5px] text-[12px] ${on ? "border-fg bg-fg text-bg" : "border-line hover:bg-surface2"}`}>{l}</button>;
+                      })}
+                    </div>
+                  </div>
+                  {a && (
+                    <div className="mt-2 grid grid-cols-[1fr_auto] items-center gap-3">
+                      <div>
+                        <div className="flex justify-between text-[11px] text-muted"><span>Intensidade</span><span className="font-mono">{a.level}%</span></div>
+                        <input type="range" className="tfs-range" min={0} max={100} step={5} value={a.level} onChange={(e) => patch(id, { level: Number(e.target.value) })} aria-label={`Intensidade de ${MUSCLE_PT[id] ?? id}`} />
+                      </div>
+                      <select className={`${inputCls} !h-9 !w-auto !text-[12px]`} value={a.timing} onChange={(e) => patch(id, { timing: e.target.value as MuscleTiming })} aria-label="Quando é mais exigido">
+                        {(Object.keys(TIMING_LABEL) as MuscleTiming[]).map((t) => <option key={t} value={t}>{TIMING_LABEL[t]}</option>)}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Group>
+      ))}
+
+      <div className="flex flex-wrap gap-2">
+        <Btn onClick={() => setDef((x) => ({ ...x, muscles: { ...fromExercise } }))}>Restaurar da lista do exercício</Btn>
+        <Btn onClick={() => { if (confirm("Remover a ativação de todos os músculos?")) setDef((x) => ({ ...x, muscles: {} })); }}>Limpar tudo</Btn>
+        {edited && <Btn onClick={() => setDef((x) => ({ ...x, muscles: null }))}>Voltar a usar só a lista do exercício</Btn>}
+      </div>
+      <p className="text-[11px] leading-relaxed text-muted">Ao salvar o rig, a lista de músculos do exercício (tela Método) é atualizada com estes papéis, e o app passa a mostrar a intensidade e a fase em que cada músculo é mais exigido.</p>
     </div>
   );
 }

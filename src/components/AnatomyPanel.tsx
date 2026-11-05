@@ -27,6 +27,9 @@ export default function AnatomyPanel({
   showMetrics = true,
   motionDef,
   scrub,
+  onPickMuscle,
+  highlight,
+  forceLayer,
 }: {
   exerciseId: string;
   playing: boolean;
@@ -38,6 +41,11 @@ export default function AnatomyPanel({
   /** undefined = usa o rig salvo no Estúdio (se houver); null = força o movimento padrão */
   motionDef?: MotionDef | null;
   scrub?: number | null;
+  /** Estúdio: clique em um músculo do corpo */
+  onPickMuscle?: (m: MuscleId) => void;
+  /** Estúdio: músculo destacado a partir de uma lista externa */
+  highlight?: MuscleId | null;
+  forceLayer?: Layer;
 }) {
   const { t } = useI18n();
   const ex = EXERCISES[exerciseId];
@@ -49,10 +57,13 @@ export default function AnatomyPanel({
   const [hover, setHover] = useState<MuscleId | null>(null);
   const [metrics, setMetrics] = useState<Pose["metrics"] | null>(null);
 
+  const shownLayer = forceLayer ?? layer;
+  const custom = def?.muscles ?? null;
+  const pick = (r: MuscleRole) => (custom ? (Object.entries(custom).filter(([, a]) => a?.role === r).map(([id]) => id) as MuscleId[]) : r === "primary" ? ex.primary : r === "secondary" ? ex.secondary : ex.stabilizers);
   const groups: [MuscleRole, MuscleId[]][] = [
-    ["primary", ex.primary],
-    ["secondary", ex.secondary],
-    ["stabilizer", ex.stabilizers],
+    ["primary", pick("primary")],
+    ["secondary", pick("secondary")],
+    ["stabilizer", pick("stabilizer")],
   ];
 
   return (
@@ -61,12 +72,13 @@ export default function AnatomyPanel({
         <Anatomy3D
           exerciseId={exerciseId}
           playing={playing}
-          layer={layer}
+          layer={shownLayer}
           showIK={ik}
           view={view}
           resetKey={resetKey}
           speed={speed}
-          hoverMuscle={hover}
+          hoverMuscle={highlight ?? hover}
+          onPickMuscle={onPickMuscle}
           onHover={setHover}
           onMetrics={showMetrics ? setMetrics : undefined}
           motionDef={def}
@@ -78,7 +90,7 @@ export default function AnatomyPanel({
         <div className="pointer-events-auto">
           <Segmented<Layer>
             label={t("anatomy.layers")}
-            value={layer}
+            value={shownLayer}
             onChange={setLayer}
             options={[
               { value: "skin", label: t("anatomy.skin") },

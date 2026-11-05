@@ -1,4 +1,4 @@
-import type { MotionType } from "./exercises";
+import type { MotionType, MuscleId, MuscleRole } from "./exercises";
 import { LEN, controlsFor, poseFromControls, type Controls, type Lengths, type Pose, type V } from "./pose";
 
 /**
@@ -41,9 +41,40 @@ export interface VideoRef {
 }
 export const defaultVideo = (url = ""): VideoRef => ({ url, t0: 0, t1: 2, t2: 4, flip: false, scale: 1, ox: 0, oy: 0, opacity: 0.6, heightM: 1.7 });
 
+/** Ativação de um músculo: papel, intensidade (0–100) e em que fase da repetição é mais exigido. */
+export type MuscleTiming = "hold" | "rise" | "fall";
+export interface MuscleAct {
+  role: MuscleRole;
+  level: number;
+  timing: MuscleTiming;
+}
+export type MuscleMap = Partial<Record<MuscleId, MuscleAct>>;
+export const MUSCLE_IDS: MuscleId[] = ["quads", "hamstrings", "glutes", "calves", "abs", "erector", "lats", "pecs", "traps", "deltoids", "biceps", "triceps"];
+export const ROLE_LEVEL: Record<MuscleRole, number> = { primary: 100, secondary: 60, stabilizer: 30 };
+export const TIMING_LABEL: Record<MuscleTiming, string> = { hold: "Constante", rise: "Mais forte na subida/esforço", fall: "Mais forte na descida/alongamento" };
+
+/** Monta o mapa de ativação a partir das listas do exercício (principais, auxiliares, estabilizadores). */
+export function musclesFromLists(primary: string[], secondary: string[], stabilizers: string[]): MuscleMap {
+  const m: MuscleMap = {};
+  const put = (ids: string[], role: MuscleRole) => ids.forEach((id) => {
+    if ((MUSCLE_IDS as string[]).includes(id)) m[id as MuscleId] = { role, level: ROLE_LEVEL[role], timing: "hold" };
+  });
+  put(stabilizers, "stabilizer");
+  put(secondary, "secondary");
+  put(primary, "primary");
+  return m;
+}
+
+/** Fator de ativação ao longo da repetição (p: 0 início … 1 ponto máximo). */
+export function timingFactor(t: MuscleTiming, p: number): number {
+  return t === "rise" ? 0.3 + 0.7 * p : t === "fall" ? 0.3 + 0.7 * (1 - p) : 1;
+}
+
 export interface MotionDef {
   v: 1;
   video?: VideoRef | null;
+  /** músculos ativados neste exercício (null/ausente = usa a lista do exercício) */
+  muscles?: MuscleMap | null;
   lengths: Lengths;
   keys: Key[];
   limits: Record<JointAngle, [number, number]>;

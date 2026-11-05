@@ -508,3 +508,66 @@ final class Schema
         }
     }
 }
+
+final class Seed
+{
+    public const TEST_EMAIL = 'teste@thefullsculpt.com.br';
+
+    /** Senha aleatória legível (sem caracteres ambíguos), mostrada uma única vez. */
+    public static function password(): string
+    {
+        $alphabet = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        $out = '';
+        for ($i = 0; $i < 16; $i++) {
+            $out .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+        }
+        return $out;
+    }
+
+    /**
+     * Cria (ou recria) o usuário de teste: aluna na Fase 4, assinatura ativa e 14 aulas no histórico.
+     * Dados 100% fictícios, só para validar a área restrita antes da versão final.
+     *
+     * @param array<string,mixed> $cfg
+     * @return int id do usuário
+     */
+    public static function testUser(PDO $pdo, array $cfg, string $password): int
+    {
+        DB::run($pdo, 'DELETE FROM users WHERE email = ?', [self::TEST_EMAIL]);
+        $now = DB::now();
+        $pdo->beginTransaction();
+        try {
+            DB::run($pdo, 'INSERT INTO users (email, password_hash, name, role, locale, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+                [self::TEST_EMAIL, Auth::hash($password), 'Marina Duarte (teste)', 'student', 'pt', $now]);
+            $uid = (int) $pdo->lastInsertId();
+            foreach (['terms', 'health'] as $type) {
+                DB::run($pdo, 'INSERT INTO consents (user_id, type, granted, version, ip_hash, created_at) VALUES (?, ?, 1, ?, ?, ?)',
+                    [$uid, $type, 'seed', Crypto::ipHash($cfg), $now]);
+            }
+            $blob = json_encode([
+                'answers' => ['goal' => 'sculpt', 'experience' => 'y1to3', 'days' => 4, 'injuries' => [], 'parq' => [], 'coaching' => true],
+                'medicalClearance' => false,
+                'restrictions' => [],
+            ], JSON_UNESCAPED_UNICODE);
+            DB::run($pdo, 'INSERT INTO anamneses (user_id, data_enc, updated_at) VALUES (?, ?, ?)', [$uid, Crypto::enc((string) $blob, $cfg), $now]);
+            $yesterday = gmdate('Y-m-d', time() - 86400);
+            DB::run($pdo, "INSERT INTO user_stats (user_id, xp, streak, best_streak, last_day, phase, sub_status, updated_at) VALUES (?, 1840, 5, 9, ?, 4, 'active', ?)",
+                [$uid, $yesterday, $now]);
+            foreach ([1, 2, 4, 5, 7, 8, 9, 11, 12, 14, 15, 16, 18, 19] as $i => $offset) {
+                DB::run($pdo, 'INSERT INTO lesson_logs (user_id, lesson_id, day, sec, rpe, xp, created_at) VALUES (?, ?, ?, ?, ?, 110, ?)', [
+                    $uid,
+                    sprintf('f%d-%d', $i < 8 ? 3 : 4, ($i % 6) + 1),
+                    gmdate('Y-m-d', time() - $offset * 86400),
+                    540 + (($i * 53) % 300),
+                    5 + ($i % 4),
+                    $now,
+                ]);
+            }
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+        return $uid;
+    }
+}

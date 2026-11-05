@@ -14,6 +14,7 @@ use TFS\Auth;
 use TFS\Config;
 use TFS\DB;
 use TFS\Schema;
+use TFS\Seed;
 
 const SETUP_TOKEN_SHA256 = 'c6c3e3891a30a721267cb9830cc1076e64010086c304419e9f21f146cd0220a4';
 
@@ -71,6 +72,9 @@ $form = static function (array $v = []) use ($checks): string {
         . '<label>Nome</label><input name="aname" value="' . $f('aname') . '">'
         . '<label>E-mail</label><input name="aemail" type="email" value="' . $f('aemail') . '">'
         . '<label>Senha (mínimo 12 caracteres)</label><input name="apass" type="password">'
+        . '<hr style="margin:24px 0;border:0;border-top:1px solid #d8d2c8">'
+        . '<label style="display:flex;gap:10px;align-items:flex-start;margin:0;color:#161514"><input type="checkbox" name="seedtest" value="1" checked style="width:auto;margin-top:5px">'
+        . '<span>Criar usuário de teste (<code>' . h(Seed::TEST_EMAIL) . '</code>) com dados fictícios: Fase 4, assinatura ativa e 14 aulas no histórico. A senha é gerada agora e aparece uma única vez. Para remover depois: entre com ele e use Perfil, Excluir minha conta.</span></label>'
         . '<button type="submit">Instalar</button></form>';
 };
 
@@ -97,6 +101,8 @@ $dbpass = (string) ($_POST['dbpass'] ?? '');
 $aemail = strtolower($in('aemail'));
 $apass = (string) ($_POST['apass'] ?? '');
 $aname = $in('aname');
+$wantSeed = isset($_POST['seedtest']);
+$seedPass = null;
 $keep = ['host' => $host, 'dbname' => $dbname, 'dbuser' => $dbuser, 'aname' => $aname, 'aemail' => $aemail];
 
 if (!preg_match('/^[A-Za-z0-9_.\-]+$/', $host) || !preg_match('/^[A-Za-z0-9_\-]+$/', $dbname)) {
@@ -118,6 +124,10 @@ try {
     ];
     $pdo = DB::pdo($cfg);
     Schema::install($pdo);
+    if ($wantSeed) {
+        $seedPass = Seed::password();
+        Seed::testUser($pdo, $cfg, $seedPass);
+    }
     if ($wantAdmin) {
         $exists = DB::one($pdo, 'SELECT id FROM users WHERE email = ?', [$aemail]);
         if (!$exists) {
@@ -132,13 +142,14 @@ try {
     page('<p class="err">Não consegui conectar ou criar as tabelas. Confira servidor, banco, usuário e senha.</p>' . $form($keep));
 }
 
+$creds = $seedPass === null ? '' : '<div style="margin:18px 0;padding:14px;border:1px solid #d8d2c8;border-radius:10px;background:#fff"><strong>Usuário de teste</strong><br>E-mail: <code>' . h(Seed::TEST_EMAIL) . '</code><br>Senha: <code>' . h($seedPass) . '</code><br><small>Anote agora: esta senha não será mostrada de novo.</small></div>';
 $php = "<?php\n// Gerado pelo instalador. NÃO versionar, NÃO expor.\nreturn " . var_export($cfg, true) . ";\n";
 $path = Config::path();
 $written = @file_put_contents($path, $php, LOCK_EX) !== false;
 if ($written) {
     @chmod($path, 0600);
     @file_put_contents(Config::lockPath(), gmdate('c') . "\n");
-    page('<p class="ok">✓ Banco criado e configuração gravada fora do site público.</p><p>Instalação concluída. Este instalador está desativado.</p>');
+    page('<p class="ok">✓ Banco criado e configuração gravada fora do site público.</p><p>Instalação concluída. Este instalador está desativado.</p>' . $creds);
 }
 // Sem permissão de escrita fora do public_html: mostra o conteúdo uma única vez.
-page('<p class="err">Não consegui gravar <code>' . h($path) . '</code>.</p><p>Crie esse arquivo manualmente (fora do <code>public_html</code>) com o conteúdo abaixo e depois crie o arquivo vazio <code>tfs-installed.lock</code> ao lado dele:</p><pre style="white-space:pre-wrap;word-break:break-all;background:#efebe4;padding:12px;border-radius:10px">' . h($php) . '</pre>');
+page('<p class="err">Não consegui gravar <code>' . h($path) . '</code>.</p><p>Crie esse arquivo manualmente (fora do <code>public_html</code>) com o conteúdo abaixo e depois crie o arquivo vazio <code>tfs-installed.lock</code> ao lado dele:</p><pre style="white-space:pre-wrap;word-break:break-all;background:#efebe4;padding:12px;border-radius:10px">' . h($php) . '</pre>' . $creds);

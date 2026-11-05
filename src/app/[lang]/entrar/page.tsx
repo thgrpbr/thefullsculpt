@@ -13,6 +13,7 @@ export default function Login() {
   const { t, href } = useI18n();
   const router = useRouter();
   const applyServer = useStore((s) => s.applyServer);
+  const loadDemo = useStore((s) => s.loadDemo);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -51,6 +52,7 @@ export default function Login() {
         <p className="mt-8 text-center text-[14px] text-muted">
           {t("auth.noAccount")} <Link href={href("/onboarding")} className="text-fg underline underline-offset-4">{t("auth.create")}</Link>
         </p>
+        <button type="button" onClick={() => { loadDemo(); router.push(href("/app")); }} className="mt-4 text-[12px] text-muted underline underline-offset-4">{t("gate.demo")}</button>
       </main>
     </div>
   );

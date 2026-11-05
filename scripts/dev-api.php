@@ -26,6 +26,8 @@ if (PHP_SAPI === 'cli') {
     file_put_contents($cfgPath, "<?php\nreturn " . var_export($cfg, true) . ";\n");
     putenv("TFS_CONFIG=$cfgPath");
     TFS\Schema::install(TFS\DB::pdo($cfg));
+    // usuário de teste para os testes de integração (senha fixa só no ambiente local de teste)
+    TFS\Seed::testUser(TFS\DB::pdo($cfg), $cfg, 'senha-de-teste-local-1');
     echo "ok\n";
     exit(0);
 }

@@ -67,11 +67,11 @@ ok("anamnese volta decifrada", an.json?.answers?.goal === "sculpt");
 ok("fase inválida => 422", (await a.call("PUT", "/anamnese", { answers: {}, assignment: { phase: 12 } })).status === 422);
 if (DB) {
   const db = new DatabaseSync(DB);
-  const row = db.prepare("SELECT data_enc FROM anamneses").get();
+  const row = db.prepare("SELECT data_enc FROM anamneses WHERE user_id = (SELECT id FROM users WHERE email = ?)").get(email);
   ok("dado de saúde cifrado em repouso", row && !/knee|sculpt|injuries/.test(row.data_enc) && row.data_enc.length > 40);
   const u = db.prepare("SELECT password_hash FROM users WHERE email = ?").get(email);
   ok("senha com hash forte (argon2/bcrypt)", /^\$(argon2id|2y)\$/.test(u.password_hash) && !u.password_hash.includes(password));
-  const ip = db.prepare("SELECT ip_hash FROM sessions").get();
+  const ip = db.prepare("SELECT ip_hash FROM sessions WHERE user_id = (SELECT id FROM users WHERE email = ?)").get(email);
   ok("IP guardado só como hash", ip.ip_hash.length === 64 && !ip.ip_hash.includes("127.0.0.1"));
 }
 ok("aula grátis errada (f4-2) => 402", (await a.call("POST", "/lessons/complete", { lessonId: "f4-2", sec: 600, rpe: 6, steps: 10 })).status === 402);
@@ -112,9 +112,17 @@ ok("excluir conta => 200", (await a.call("DELETE", "/privacy/account", { passwor
 ok("sessão invalidada após exclusão", (await a.call("GET", "/me")).status === 401);
 if (DB) {
   const db = new DatabaseSync(DB);
-  ok("usuário e dados removidos do banco", db.prepare("SELECT COUNT(*) n FROM users WHERE email = ?").get(email).n === 0 && db.prepare("SELECT COUNT(*) n FROM anamneses").get().n === 0 && db.prepare("SELECT COUNT(*) n FROM lesson_logs").get().n === 0);
+  ok("usuário e dados removidos do banco", db.prepare("SELECT COUNT(*) n FROM users WHERE email = ?").get(email).n === 0 && db.prepare("SELECT COUNT(*) n FROM anamneses WHERE user_id NOT IN (SELECT id FROM users)").get().n === 0 && db.prepare("SELECT COUNT(*) n FROM lesson_logs WHERE user_id NOT IN (SELECT id FROM users)").get().n === 0 && db.prepare("SELECT COUNT(*) n FROM sessions WHERE user_id NOT IN (SELECT id FROM users)").get().n === 0);
   ok("auditoria preservada sem vínculo ao usuário", db.prepare("SELECT COUNT(*) n FROM audit_log WHERE action = 'account_deleted' AND user_id IS NULL").get().n === 1);
 }
+
+console.log("Usuário de teste (seed)");
+const t = new Client();
+const tl = await t.call("POST", "/auth/login", { email: "teste@thefullsculpt.com.br", password: "senha-de-teste-local-1" });
+ok("login do usuário de teste => 200", tl.status === 200, JSON.stringify(tl.json));
+ok("fase 4, assinatura ativa, 14 aulas, 1840 XP", tl.json?.assignment?.phase === 4 && tl.json?.sub === "active" && tl.json?.log?.length === 14 && tl.json?.xp === 1840);
+ok("anamnese do seed decifra", tl.json?.answers?.goal === "sculpt");
+ok("pode concluir aula da fase 4", (await t.call("POST", "/lessons/complete", { lessonId: "f4-4", sec: 600, rpe: 6, steps: 10 })).status === 200);
 
 console.log(`\n${pass} ok, ${fail} falhas`);
 process.exit(fail ? 1 : 0);

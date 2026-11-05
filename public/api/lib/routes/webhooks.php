@@ -82,10 +82,24 @@ $normalize = static function () use ($provider, $gateways, $event, $raw, $cfg, $
             }
         }
     } elseif ($provider === 'pagarme') {
-        $auth = $hdr('Authorization');
+        // Basic user:senha — cada servidor expõe o cabeçalho de um jeito (HTTP_AUTHORIZATION, REDIRECT_…, PHP_AUTH_*, getallheaders)
+        $given = '';
+        $auth = $hdr('Authorization') ?: (string) ($_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
+        if ($auth === '' && function_exists('getallheaders')) {
+            foreach (getallheaders() as $hk => $hv) {
+                if (strcasecmp((string) $hk, 'Authorization') === 0) {
+                    $auth = (string) $hv;
+                }
+            }
+        }
+        if (str_starts_with($auth, 'Basic ')) {
+            $given = (string) base64_decode(substr($auth, 6), true);
+        } elseif (isset($_SERVER['PHP_AUTH_USER'])) {
+            $given = $_SERVER['PHP_AUTH_USER'] . ':' . ($_SERVER['PHP_AUTH_PW'] ?? '');
+        }
         foreach ($gateways as $g) {
             $want = Gateways::config($g, $cfg)['webhook_secret'] ?? '';
-            if ($want !== '' && str_starts_with($auth, 'Basic ') && hash_equals($want, (string) base64_decode(substr($auth, 6), true))) {
+            if ($want !== '' && $given !== '' && hash_equals($want, $given)) {
                 $verified = true;
             }
         }
